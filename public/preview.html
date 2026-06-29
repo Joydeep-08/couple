@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Preview</title>
+<link rel="stylesheet" href="style.css" />
+<style>
+  body { margin:0; }
+  iframe { width: 100%; height: calc(100vh - 64px); border: none; display:block; }
+</style>
+</head>
+<body>
+
+<div class="preview-bar">
+  <div>
+    <div class="label">Preview mode</div>
+    <div class="title">This is how the card will look ✨</div>
+  </div>
+  <div style="display:flex; gap:10px;">
+    <a class="btn btn-outline" id="editBtn" href="#">← Edit</a>
+    <button class="btn btn-primary" id="generateBtn">🔗 Generate link — ₹99</button>
+  </div>
+</div>
+
+<div class="preview-frame-holder">
+  <iframe id="previewFrame" src=""></iframe>
+  <div class="watermark-layer" id="watermark"></div>
+</div>
+
+<!-- Result modal -->
+<div id="resultModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:200; align-items:center; justify-content:center; display:flex;">
+  <div style="background:#fff; border-radius:16px; padding:28px; max-width:420px; width:90%; text-align:center;">
+    <h2 style="margin-top:0;">Your link is ready 🎉</h2>
+    <p id="finalLink" style="word-break:break-all; background:#fdeef3; padding:12px; border-radius:10px; font-size:14px;"></p>
+    <button class="btn btn-primary" id="copyBtn" style="width:100%; margin-top:10px;">Copy link</button>
+  </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="supabaseClient.js"></script>
+<script src="preview.js"></script>
+</body>
+</html>

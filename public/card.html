@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>For You</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="card-screen screen-bg-pink" id="screenLanding">
+  <div class="bear">🐻</div>
+  <h1 id="landingTitle">Hey love</h1>
+  <p id="landingLine" style="color:#a55c78;"></p>
+  <div style="display:flex; gap:12px; margin-top:18px;">
+    <button class="btn btn-primary" id="yesBtn">Yes please</button>
+    <button class="btn btn-outline" id="noBtn">No thanks</button>
+  </div>
+</div>
+
+<div class="card-screen screen-bg-red" id="screenPasscode" style="display:none;">
+  <h2>Enter a passcode</h2>
+  <div class="passcode-dots" id="dots">
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+  </div>
+  <div class="keypad" id="keypad"></div>
+  <p class="hint" id="hintLine">hint - it's our fav code</p>
+</div>
+
+<div class="card-screen screen-bg-pink" id="screenGifts" style="display:none;">
+  <h2 id="giftsTitle">Gift for you</h2>
+  <div class="gifts-row">
+    <button class="gift-box" data-target="cake">🎁</button>
+    <button class="gift-box" data-target="photos">🎁</button>
+    <button class="gift-box" data-target="letter">🎁</button>
+  </div>
+  <p style="color:#a55c78;">tap any gift to open</p>
+</div>
+
+<div class="card-screen screen-bg-red" id="screenCake" style="display:none;">
+  <h2>Make a wish</h2>
+  <div class="cake-wrap">
+    <div id="candles">
+      <span class="candle"></span><span class="candle"></span><span class="candle"></span>
+      <span class="candle"></span><span class="candle"></span>
+    </div>
+    <div class="cake-body">
+      <div class="cake-tier top"></div>
+      <div class="cake-tier bottom"></div>
+    </div>
+  </div>
+  <button class="btn btn-primary" id="blowBtn">Blow</button>
+  <p id="cakeWishLine" style="display:none; margin-top:14px;">made a wish? we already know it's about us</p>
+  <button class="back-btn" data-back="gifts">back</button>
+</div>
+
+<div class="card-screen screen-bg-red" id="screenPhotos" style="display:none;">
+  <h2>A few of my favourites</h2>
+  <div class="photos-grid" id="photosGrid"></div>
+  <button class="back-btn" data-back="gifts">back</button>
+</div>
+
+<div class="card-screen screen-bg-red" id="screenLetter" style="display:none;">
+  <h2>For you</h2>
+  <div class="letter" id="letterBody"></div>
+  <button class="back-btn" data-back="gifts">back</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="supabaseClient.js"></script>
+<script src="card.js"></script>
+</body>
+</html>

@@ -30,6 +30,7 @@ Same pattern as SurpriseIt: save-before-payment, paid only flips via server-side
    ```
    (`--no-verify-jwt` because these are called with the anon key from the browser, not a logged-in user JWT.)
 
+
 ## 2. Frontend (Cloudflare Pages)
 The whole `public/` folder is the site. Deploy it as-is:
 ```

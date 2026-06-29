@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Make Your Surprise</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="wrap">
+  <h1>Make a surprise 💌</h1>
+  <p style="color:#a55c78; margin-top:-8px;">Fill this in, preview it, then get a link to send.</p>
+
+  <form id="cardForm">
+    <div class="field">
+      <label>Your name</label>
+      <input type="text" id="name1" placeholder="e.g. Joy" required />
+    </div>
+    <div class="field">
+      <label>Their name</label>
+      <input type="text" id="name2" placeholder="e.g. Riya" required />
+    </div>
+    <div class="field">
+      <label>4-digit passcode (they'll need this to unlock it)</label>
+      <input type="text" id="passcode" placeholder="e.g. 0207" maxlength="4" inputmode="numeric" pattern="\d{4}" required />
+    </div>
+
+    <div class="field">
+      <label>Photo 1 (cake screen)</label>
+      <div class="file-drop" id="drop1">
+        <span>Tap to upload</span>
+        <input type="file" id="photo1" accept="image/*" required />
+      </div>
+    </div>
+    <div class="field">
+      <label>Photo 2 (memories screen)</label>
+      <div class="file-drop" id="drop2">
+        <span>Tap to upload</span>
+        <input type="file" id="photo2" accept="image/*" required />
+      </div>
+    </div>
+    <div class="field">
+      <label>Photo 3 (letter screen)</label>
+      <div class="file-drop" id="drop3">
+        <span>Tap to upload</span>
+        <input type="file" id="photo3" accept="image/*" required />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Your message (the letter)</label>
+      <textarea id="message" rows="6" placeholder="Write what you actually want to say..." required></textarea>
+    </div>
+
+    <button class="btn btn-primary" type="submit" id="submitBtn" style="width:100%;">Preview it →</button>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="supabaseClient.js"></script>
+<script src="create.js"></script>
+</body>
+</html>
