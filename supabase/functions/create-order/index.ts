@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     );
 
     const { data: card, error } = await supabase
-      .from("cards")
+      .from("couplegift_cards")
       .select("id, amount, paid")
       .eq("id", card_id)
       .single();
@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     if (!rpRes.ok) throw new Error(order?.error?.description || "Razorpay order creation failed");
 
     // Save order id on the card row
-    await supabase.from("cards").update({ razorpay_order_id: order.id }).eq("id", card_id);
+    await supabase.from("couplegift_cards").update({ razorpay_order_id: order.id }).eq("id", card_id);
 
     return new Response(
       JSON.stringify({

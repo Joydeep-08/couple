@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     );
 
     const { error } = await supabase
-      .from("cards")
+      .from("couplegift_cards")
       .update({
         paid: true,
         razorpay_payment_id,

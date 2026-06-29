@@ -16,18 +16,18 @@ window.cgHelpers = {
   async uploadPhoto(file, cardId, slot) {
     const ext = file.name.split(".").pop();
     const path = `${cardId}/photo${slot}.${ext}`;
-    const { error } = await window.sb.storage.from("card-photos").upload(path, file, {
+    const { error } = await window.sb.storage.from("couplegift-photos").upload(path, file, {
       upsert: true,
       contentType: file.type,
     });
     if (error) throw error;
-    const { data } = window.sb.storage.from("card-photos").getPublicUrl(path);
+    const { data } = window.sb.storage.from("couplegift-photos").getPublicUrl(path);
     return data.publicUrl;
   },
 
   async getCard(id) {
     const { data, error } = await window.sb
-      .from("cards")
+      .from("couplegift_cards")
       .select("*")
       .eq("id", id)
       .single();

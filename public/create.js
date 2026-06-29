@@ -56,7 +56,7 @@ document.getElementById("cardForm").addEventListener("submit", async (e) => {
     if (!cardId) {
       // create the row first so we have an id to upload photos under
       const { data, error } = await window.sb
-        .from("cards")
+        .from("couplegift_cards")
         .insert({ name1, name2, passcode, message })
         .select()
         .single();
@@ -64,7 +64,7 @@ document.getElementById("cardForm").addEventListener("submit", async (e) => {
       cardId = data.id;
     } else {
       const { error } = await window.sb
-        .from("cards")
+        .from("couplegift_cards")
         .update({ name1, name2, passcode, message })
         .eq("id", cardId);
       if (error) throw error;
@@ -79,7 +79,7 @@ document.getElementById("cardForm").addEventListener("submit", async (e) => {
       }
     }
     if (Object.keys(updates).length) {
-      const { error } = await window.sb.from("cards").update(updates).eq("id", cardId);
+      const { error } = await window.sb.from("couplegift_cards").update(updates).eq("id", cardId);
       if (error) throw error;
     }
 
