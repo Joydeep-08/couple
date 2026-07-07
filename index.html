@@ -308,6 +308,54 @@
     margin:18px 0 6px;
   }
   .price-now{ font-family:'Fraunces', serif; font-size:38px; color:var(--purple-deep); }
+  .price-old{
+    font-family:'DM Sans', sans-serif;
+    font-size:16px;
+    color:rgba(74,30,70,0.4);
+    text-decoration:line-through;
+  }
+
+  /* ---- COUPON box ---- */
+  .coupon-row{
+    display:flex;
+    gap:8px;
+    margin-top:20px;
+  }
+  .coupon-row input{
+    flex:1;
+    min-width:0;
+    background:rgba(255,255,255,0.8);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 12px;
+    color:var(--cream);
+    font-family:'DM Sans', sans-serif;
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+  }
+  .coupon-row input::placeholder{ text-transform:none; letter-spacing:normal; }
+  .coupon-row button{
+    background:rgba(155,93,229,0.12);
+    color:var(--purple-deep);
+    border:1px solid rgba(155,93,229,0.3);
+    border-radius:10px;
+    padding:0 16px;
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+    white-space:nowrap;
+    font-family:'DM Sans', sans-serif;
+  }
+  .coupon-row button:hover{ background:rgba(155,93,229,0.2); }
+  .coupon-msg{
+    font-size:12.5px;
+    margin-top:8px;
+    min-height:16px;
+    font-weight:600;
+  }
+  .coupon-msg.success{ color:#1c9a5b; }
+  .coupon-msg.error{ color:#e0396a; }
 
   /* ---- SHARE LINK box (shown after payment) ---- */
   .share-box{
@@ -496,7 +544,14 @@ for(let i=0;i<16;i++){
     <div style="font-size:13px; color:rgba(74,30,70,0.6)">Official "Yes" Confirmation <span class="heart-accent" style="font-size:14px;">💗</span></div>
     <div class="price-row">
       <span class="price-now" id="priceNow">₹69</span>
+      <span class="price-old" id="priceOld" style="display:none;"></span>
     </div>
+
+    <div class="coupon-row">
+      <input type="text" id="couponInput" placeholder="Have a coupon code?">
+      <button id="applyCouponBtn">Apply</button>
+    </div>
+    <div class="coupon-msg" id="couponMsg"></div>
 
     <button class="btn" id="payBtn">Pay & get my link</button>
     <div class="fine">Secure checkout via Razorpay. Replace the demo key in the code with your live Razorpay Key ID before going live — see comments in the script.</div>
@@ -547,6 +602,19 @@ let isRecipient = false;
 let isPaid = false;
 const BASE_PRICE = 69; // ₹ — change as needed
 
+/* ---------- COUPON CONFIG ----------
+   Add / remove codes here. `type: 'free'` skips Razorpay entirely and
+   unlocks the link immediately. `type: 'flat'` subtracts `value` rupees
+   from BASE_PRICE (never going below ₹1) before opening Razorpay.
+   Codes are matched case-insensitively. */
+const COUPONS = {
+  'FREEHEART': { type: 'free' },
+  'SAVE20':    { type: 'flat', value: 20 }
+};
+
+let activeCoupon = null;   // the coupon object currently applied
+let currentPrice = BASE_PRICE;
+
 /* ---------- stage helpers ---------- */
 function goTo(id){
   document.querySelectorAll('.stage').forEach(s=>s.classList.remove('active'));
@@ -576,6 +644,69 @@ function renderStage4(){
   fromLine.style.display = fromName ? 'block' : 'none';
   fromLine.textContent = fromName ? `— from ${fromName}` : '';
 }
+
+/* ---------- coupon logic ---------- */
+function updatePriceDisplay(){
+  const priceNowEl = document.getElementById('priceNow');
+  const priceOldEl = document.getElementById('priceOld');
+  const payBtn = document.getElementById('payBtn');
+
+  if(currentPrice <= 0){
+    priceNowEl.textContent = 'FREE';
+    priceOldEl.style.display = 'inline';
+    priceOldEl.textContent = '₹' + BASE_PRICE;
+    payBtn.textContent = 'Get my link — free';
+  } else if(currentPrice < BASE_PRICE){
+    priceNowEl.textContent = '₹' + currentPrice;
+    priceOldEl.style.display = 'inline';
+    priceOldEl.textContent = '₹' + BASE_PRICE;
+    payBtn.textContent = 'Pay & get my link';
+  } else {
+    priceNowEl.textContent = '₹' + currentPrice;
+    priceOldEl.style.display = 'none';
+    payBtn.textContent = 'Pay & get my link';
+  }
+}
+
+function showCouponMsg(text, ok){
+  const msg = document.getElementById('couponMsg');
+  msg.textContent = text;
+  msg.className = 'coupon-msg ' + (ok ? 'success' : 'error');
+}
+
+document.getElementById('applyCouponBtn').addEventListener('click', ()=>{
+  const raw = document.getElementById('couponInput').value.trim().toUpperCase();
+  if(!raw){
+    showCouponMsg('Enter a code first.', false);
+    return;
+  }
+  const coupon = COUPONS[raw];
+  if(!coupon){
+    activeCoupon = null;
+    currentPrice = BASE_PRICE;
+    updatePriceDisplay();
+    showCouponMsg('That code isn\'t valid.', false);
+    return;
+  }
+
+  activeCoupon = coupon;
+  if(coupon.type === 'free'){
+    currentPrice = 0;
+    showCouponMsg('Coupon applied — this one\'s on the house 💗', true);
+  } else if(coupon.type === 'flat'){
+    currentPrice = Math.max(1, BASE_PRICE - coupon.value);
+    showCouponMsg(`Coupon applied — ₹${coupon.value} off!`, true);
+  }
+  updatePriceDisplay();
+});
+
+/* Allow hitting Enter in the coupon field instead of only clicking Apply */
+document.getElementById('couponInput').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    document.getElementById('applyCouponBtn').click();
+  }
+});
 
 /* ---------- RECIPIENT-LINK MODE ---------- */
 /* If this page was opened with ?id=..., it's the unique link sent to the
@@ -784,15 +915,25 @@ document.getElementById('confirmPaidBtn')?.addEventListener('click', async ()=>{
   goTo('stage4');
 });
 
-/* ---------- STAGE 3: Razorpay checkout ---------- */
-document.getElementById('payBtn').addEventListener('click', ()=>{
+/* ---------- STAGE 3: Razorpay checkout (or free-coupon bypass) ---------- */
+document.getElementById('payBtn').addEventListener('click', async ()=>{
+  // Free coupon: skip Razorpay entirely.
+  if(activeCoupon && activeCoupon.type === 'free'){
+    isPaid = true;
+    await unlockShareableLink();
+    renderStage4();
+    goTo('stage4');
+    return;
+  }
+
   // ---- RAZORPAY CONFIG ----
   // For production, the amount + order_id should ideally be created on YOUR
   // backend (never trust a client-side amount) and passed in here. This demo
-  // charges a fixed client-side amount for simplicity.
+  // charges a fixed client-side amount for simplicity. currentPrice already
+  // reflects any applied coupon discount.
   const options = {
     key: 'rzp_live_Sz9gct8RO5E1jB', // <-- your Razorpay Key ID
-    amount: BASE_PRICE * 100,       // Razorpay expects paise
+    amount: currentPrice * 100,     // Razorpay expects paise
     currency: 'INR',
     name: 'Will You Be Mine',
     description: 'Official Yes Confirmation',
