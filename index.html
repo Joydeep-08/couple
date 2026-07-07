@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Will You Be Mine?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,500;1,600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style>
+  :root{
+    --pink:#ff5da2;
+    --pink-deep:#ff2f8c;
+    --purple:#9b5de5;
+    --purple-deep:#7c3aed;
+    --peach:#ffb37a;
+    --gold:#f5a83c;
+    --plum:#4a1e46;
+    --rose:#ff5da2;
+    --rose-soft:#9a4b86;
+    --cream:#4a1e46;
+    --paper:#fffaf7;
+    --line: rgba(74,30,70,0.14);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 12% 18%, rgba(255,150,210,0.55), transparent 42%),
+      radial-gradient(circle at 88% 12%, rgba(180,140,255,0.5), transparent 46%),
+      radial-gradient(circle at 82% 88%, rgba(255,130,190,0.4), transparent 48%),
+      radial-gradient(circle at 15% 88%, rgba(170,120,255,0.4), transparent 46%),
+      linear-gradient(165deg, #fff6fb 0%, #fdf1fb 45%, #f6ecff 100%);
+    color:var(--cream);
+    font-family:'DM Sans', sans-serif;
+    overflow-x:hidden;
+    position:relative;
+  }
+  body::before{
+    content:'';
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    background: radial-gradient(ellipse at center, rgba(255,255,255,0.35) 0%, transparent 60%);
+    z-index:1;
+  }
+  .sparkle{
+    position:fixed; border-radius:50%;
+    background: linear-gradient(135deg, var(--pink), var(--gold));
+    opacity:0.6;
+    pointer-events:none;
+    animation: twinkle 3.5s ease-in-out infinite;
+  }
+  @keyframes twinkle{ 0%,100%{opacity:.2;} 50%{opacity:.85;} }
+
+  .heart-float{
+    position:fixed;
+    top:100%;
+    pointer-events:none;
+    color:var(--pink);
+    opacity:0.7;
+    z-index:1;
+    animation: floatUp linear infinite;
+    filter: drop-shadow(0 0 6px rgba(255,93,162,0.35));
+  }
+  @keyframes floatUp{
+    0%{ transform:translateY(0) translateX(0) rotate(0deg); opacity:0; }
+    10%{ opacity:.75; }
+    90%{ opacity:.6; }
+    100%{ transform:translateY(-110vh) translateX(var(--drift,20px)) rotate(360deg); opacity:0; }
+  }
+
+  /* ---- Watermark (shown only while previewing, unpaid ---- */
+  .watermark-overlay{
+    position:fixed;
+    inset:0;
+    z-index:60;
+    pointer-events:none;
+    overflow:hidden;
+    display:none;
+  }
+  body.is-preview .watermark-overlay{ display:block; }
+  .watermark-overlay span{
+    position:absolute;
+    font-family:'DM Sans', sans-serif;
+    font-weight:800;
+    font-size:26px;
+    letter-spacing:.1em;
+    color:rgba(124,58,237,0.15);
+    transform:rotate(-28deg);
+    white-space:nowrap;
+    user-select:none;
+  }
+  .preview-badge{
+    position:fixed;
+    top:16px;
+    right:16px;
+    z-index:61;
+    background:rgba(124,58,237,0.9);
+    color:#fff;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    padding:6px 12px;
+    border-radius:999px;
+    display:none;
+  }
+  body.is-preview .preview-badge{ display:block; }
+
+  .stage{
+    min-height:100vh;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:40px 20px;
+    text-align:center;
+    position:relative;
+    z-index:2;
+  }
+  .stage.active{ display:flex; animation:fadeIn .6s ease; }
+  html.recipient-mode #stage0{ display:none !important; }
+  .heart-accent{
+    font-size:22px;
+    display:inline-block;
+    animation: pulseHeart 1.2s ease-in-out infinite;
+    margin:0 6px;
+  }
+  @keyframes pulseHeart{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.25); } }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:translateY(0);} }
+
+  .eyebrow{
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    font-size:12px;
+    color:var(--purple-deep);
+    margin-bottom:18px;
+    opacity:.85;
+    font-weight:700;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-style:italic;
+    font-weight:500;
+    font-size:clamp(34px, 6vw, 64px);
+    line-height:1.08;
+    margin:0 0 14px;
+    background: linear-gradient(120deg, var(--pink-deep), var(--purple-deep));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  p.sub{
+    max-width:460px;
+    color:var(--rose-soft);
+    font-size:16px;
+    line-height:1.6;
+    margin:0 0 40px;
+  }
+
+  /* ---- FORM (stage0) ---- */
+  .field-label{
+    display:block;
+    font-size:12px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:rgba(74,30,70,0.55);
+    margin:22px 0 8px;
+  }
+  .field-label:first-of-type{ margin-top:0; }
+  .form-input, .form-textarea{
+    width:100%;
+    background:rgba(255,255,255,0.7);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px 14px;
+    color:var(--cream);
+    font-family:'DM Sans', sans-serif;
+    font-size:14px;
+  }
+  .form-textarea{ resize:vertical; min-height:70px; }
+  .form-input::placeholder, .form-textarea::placeholder{ color:rgba(74,30,70,0.35); }
+
+  /* ---- YES / NO stage ---- */
+  .choice-field{
+    position:relative;
+    width:100%;
+    max-width:560px;
+    height:220px;
+    margin-top:10px;
+  }
+  .btn{
+    font-family:'DM Sans', sans-serif;
+    font-weight:700;
+    font-size:19px;
+    border:none;
+    border-radius:999px;
+    padding:18px 42px;
+    cursor:pointer;
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  #yesBtn{
+    background: linear-gradient(135deg, var(--pink), var(--purple));
+    color:#fff;
+    box-shadow:0 8px 24px rgba(155,93,229,0.35);
+    position:absolute;
+    left:50%; top:70%;
+    transform:translate(-50%,-50%) scale(var(--yscale,1));
+    transition: transform .8s ease, box-shadow .18s ease;
+  }
+  #yesBtn:hover{ transform:translate(-50%,-50%) scale(calc(var(--yscale,1) * 1.06)); box-shadow:0 10px 30px rgba(155,93,229,0.5); }
+
+  #noBtn{
+    background:rgba(255,255,255,0.6);
+    color:var(--rose-soft);
+    border:1.5px solid var(--line);
+    position:absolute;
+    left:30%; top:20%;
+    transform:translate(-50%,-50%);
+    transition: left .28s ease, top .28s ease, transform .18s ease, opacity .5s ease;
+  }
+  #noBtn:hover{ border-color: var(--purple); }
+
+  .hint{
+    margin-top:26px;
+    font-size:13px;
+    color: rgba(74,30,70,0.5);
+    font-style:italic;
+  }
+
+  /* ---- BALLOON stage ---- */
+  .balloon-wrap{ cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent; }
+  .balloon-wrap svg{ display:block; animation: bob 3.2s ease-in-out infinite; }
+  @keyframes bob{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-14px);} }
+  .balloon-wrap.popped{ animation:none; }
+  .balloon-wrap.popping svg{ animation:none; transform:scale(1.15); opacity:0; transition: transform .18s ease, opacity .18s ease; }
+
+  .confetti-piece{
+    position:fixed;
+    top:0; left:0;
+    width:8px; height:14px;
+    pointer-events:none;
+    z-index:5;
+  }
+
+  .reveal{
+    margin-top:34px;
+    opacity:0;
+    transform:translateY(10px);
+    transition: opacity .5s ease .1s, transform .5s ease .1s;
+  }
+  .reveal.show{ opacity:1; transform:translateY(0); }
+
+  .gif-slot{
+    width:220px;
+    height:220px;
+    margin:20px auto 0;
+    border-radius:20px;
+    border:1.5px dashed var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:64px;
+    color:rgba(74,30,70,0.4);
+    overflow:hidden;
+    background:rgba(255,255,255,0.5);
+  }
+  .gif-slot img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+  }
+  .final-gif-slot{
+    border:2px solid var(--pink);
+    box-shadow:0 0 0 6px rgba(255,93,162,0.14), 0 12px 40px rgba(155,93,229,0.28);
+    animation: glowPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes glowPulse{
+    0%,100%{ box-shadow:0 0 0 6px rgba(255,93,162,0.14), 0 12px 40px rgba(155,93,229,0.28); }
+    50%{ box-shadow:0 0 0 10px rgba(255,93,162,0.22), 0 16px 50px rgba(155,93,229,0.4); }
+  }
+
+  .continue-btn{
+    margin-top:34px;
+    background: linear-gradient(135deg, var(--gold), var(--peach));
+    color:var(--plum);
+  }
+
+  /* ---- PAYMENT stage ---- */
+  .card{
+    background: rgba(255,255,255,0.65);
+    backdrop-filter: blur(10px);
+    border:1px solid rgba(155,93,229,0.18);
+    border-radius:22px;
+    padding:34px 30px;
+    width:100%;
+    max-width:400px;
+    text-align:left;
+    box-shadow: 0 20px 50px rgba(155,93,229,0.14);
+  }
+  .price-row{
+    display:flex;
+    align-items:baseline;
+    gap:12px;
+    margin:18px 0 6px;
+  }
+  .price-now{ font-family:'Fraunces', serif; font-size:38px; color:var(--purple-deep); }
+
+  /* ---- SHARE LINK box (shown after payment) ---- */
+  .share-box{
+    margin-top:24px;
+    background: rgba(245,168,60,0.08);
+    border:1px solid rgba(245,168,60,0.4);
+    border-radius:14px;
+    padding:16px;
+    width:100%;
+    max-width:400px;
+    text-align:left;
+  }
+  .share-box .share-label{
+    font-size:12px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:#b5701c;
+    margin-bottom:8px;
+    font-weight:700;
+  }
+  .share-box .share-note{
+    font-size:12.5px;
+    color:rgba(74,30,70,0.65);
+    line-height:1.5;
+    margin-bottom:10px;
+  }
+  .share-row{ display:flex; gap:8px; }
+  .share-row input{
+    flex:1;
+    min-width:0;
+    background:rgba(255,255,255,0.8);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 12px;
+    color:var(--cream);
+    font-family:'DM Sans', sans-serif;
+    font-size:12.5px;
+  }
+  .share-row button{
+    background: linear-gradient(135deg, var(--gold), var(--peach));
+    color:var(--plum);
+    border:none;
+    border-radius:10px;
+    padding:0 16px;
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+
+  #payBtn{
+    width:100%;
+    background: linear-gradient(135deg, var(--pink), var(--purple));
+    color:#fff;
+    margin-top:26px;
+    padding:16px;
+    font-size:16px;
+    box-shadow:0 10px 26px rgba(155,93,229,0.3);
+  }
+  #payBtn:disabled{ opacity:.6; cursor:not-allowed; }
+
+  .fine{
+    font-size:11px;
+    color:rgba(74,30,70,0.4);
+    margin-top:14px;
+    line-height:1.5;
+  }
+
+  /* ---- FINAL stage ---- */
+  .final-gif-slot{ width:260px; height:260px; }
+</style>
+</head>
+<body>
+
+<!-- watermark shown only during unpaid preview -->
+<div class="watermark-overlay" id="watermarkOverlay"></div>
+<div class="preview-badge">Preview — not yet sent</div>
+
+<!-- ambient sparkles -->
+<script>
+for(let i=0;i<26;i++){
+  const s=document.createElement('div');
+  s.className='sparkle';
+  const size=Math.random()*3+1;
+  s.style.width=size+'px'; s.style.height=size+'px';
+  s.style.left=Math.random()*100+'vw';
+  s.style.top=Math.random()*100+'vh';
+  s.style.animationDelay=(Math.random()*3)+'s';
+  document.body.appendChild(s);
+}
+
+// floating hearts drifting up from the bottom of the screen
+const heartEmojis = ['💗','💕','💖','💘','💞','🍬','🧁','🍡','🍓'];
+for(let i=0;i<16;i++){
+  const h=document.createElement('div');
+  h.className='heart-float';
+  h.textContent = heartEmojis[Math.floor(Math.random()*heartEmojis.length)];
+  const size = Math.random()*14+12;
+  h.style.fontSize = size+'px';
+  h.style.left = Math.random()*100+'vw';
+  h.style.setProperty('--drift', (Math.random()*80-40)+'px');
+  const duration = Math.random()*6+7;
+  h.style.animationDuration = duration+'s';
+  h.style.animationDelay = (Math.random()*10)+'s';
+  document.body.appendChild(h);
+}
+
+// tiled "PREVIEW" watermark, built once
+(function buildWatermark(){
+  const overlay = document.getElementById('watermarkOverlay');
+  const rows = 9, cols = 5;
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const s = document.createElement('span');
+      s.textContent = 'PREVIEW';
+      s.style.top = (r*13 - 6) + '%';
+      s.style.left = (c*28 - (r%2 ? 14 : 0)) + '%';
+      overlay.appendChild(s);
+    }
+  }
+})();
+</script>
+
+<!-- STAGE 0: Set up the question -->
+<section class="stage active" id="stage0">
+  <div class="eyebrow">Let's set the scene</div>
+  <h1><span class="heart-accent">💗</span>Craft your question<span class="heart-accent">💗</span></h1>
+  <p class="sub">Write the question you're dying to ask. Preview the whole surprise for free — then unlock the real, watermark-free link whenever you're ready to send it.</p>
+
+  <div class="card">
+    <label class="field-label" for="fromNameInput">Your name (optional)</label>
+    <input type="text" id="fromNameInput" class="form-input" placeholder="e.g. Alex" maxlength="40">
+
+    <label class="field-label" for="questionInput">Your question</label>
+    <textarea id="questionInput" class="form-textarea" maxlength="80">Will you be mine?</textarea>
+
+    <button class="btn continue-btn" id="previewBtn" style="width:100%; margin-top:22px;">Preview it →</button>
+  </div>
+</section>
+
+<!-- STAGE 1: Yes / No -->
+<section class="stage" id="stage1">
+  <div class="eyebrow" id="stage1Eyebrow">A small question</div>
+  <h1><span class="heart-accent">💗</span><span id="questionDisplay">Will you be mine?</span><span class="heart-accent">💗</span></h1>
+  <p class="sub">There's only one honest answer here — the other one's a little shy and won't sit still long enough to be picked.</p>
+
+  <div class="choice-field" id="choiceField">
+    <button class="btn" id="noBtn">No</button>
+    <button class="btn" id="yesBtn">Yes</button>
+  </div>
+  <div class="hint" id="noHint">psst — try clicking "No"</div>
+  <div class="hint" id="skipToPaymentLink" style="cursor:pointer; text-decoration:underline; margin-top:10px;">Already sure? Skip ahead to get your link →</div>
+</section>
+
+<!-- STAGE 2: Balloon -->
+<section class="stage" id="stage2">
+  <div class="eyebrow">Good choice</div>
+  <h1><span class="heart-accent">💕</span>Pop it to find out<span class="heart-accent">💕</span></h1>
+  <p class="sub">One tap. That's all it takes.</p>
+
+  <div class="balloon-wrap" id="balloonWrap">
+    <svg id="balloonSvg" width="160" height="220" viewBox="0 0 160 220">
+      <ellipse cx="80" cy="90" rx="70" ry="82" fill="#ff5da2"/>
+      <ellipse cx="55" cy="55" rx="18" ry="26" fill="#ffffff" opacity="0.18"/>
+      <polygon points="72,168 88,168 80,182" fill="#ff5da2"/>
+      <path d="M80 182 C 60 200, 100 210, 80 230" stroke="#f5a83c" stroke-width="2" fill="none" opacity="0.6"/>
+    </svg>
+  </div>
+
+  <div class="reveal" id="balloonReveal">
+    <h1 style="font-size:clamp(28px,5vw,44px)"><span class="heart-accent">💖</span>Please be mine<span class="heart-accent">💖</span></h1>
+    <div class="gif-slot final-gif-slot" id="gifSlot1">
+      <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExM2RxajVyODJsdzA2d29hNjRpeDhyZnh5YnYybGRwaHVxaDVjbWdseSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l2QDYGQQKKNGq6mhq/giphy.gif" alt="cute heart gif" loading="lazy">
+    </div>
+    <button class="btn continue-btn" id="toFinalBtn">Continue</button>
+  </div>
+</section>
+
+<!-- STAGE 3: Payment -->
+<section class="stage" id="stage3">
+  <div class="eyebrow">Make it official</div>
+  <h1 style="font-size:clamp(28px,5vw,44px)"><span class="heart-accent">💞</span>Seal the deal<span class="heart-accent">💞</span></h1>
+  <p class="sub">Pay once to remove the watermark and generate your own shareable link — send it to them whenever you're ready.</p>
+
+  <div class="card">
+    <div style="font-size:13px; color:rgba(74,30,70,0.6)">Official "Yes" Confirmation <span class="heart-accent" style="font-size:14px;">💗</span></div>
+    <div class="price-row">
+      <span class="price-now" id="priceNow">₹69</span>
+    </div>
+
+    <button class="btn" id="payBtn">Pay & get my link</button>
+    <div class="fine">Secure checkout via Razorpay. Replace the demo key in the code with your live Razorpay Key ID before going live — see comments in the script.</div>
+
+    <div class="share-box" id="dismissFallback" style="display:none; margin-top:18px;">
+      <div class="share-label">👀 checkout closed</div>
+      <div class="share-note">If you scanned the QR and completed the payment on your phone, the popup sometimes closes before it can confirm automatically. If you already paid, tap below to get your link.</div>
+      <button class="btn" id="confirmPaidBtn" style="width:100%;">I already paid — get my link</button>
+    </div>
+  </div>
+</section>
+
+<!-- STAGE 4: Final reveal (creator preview, creator post-payment, and recipient all land here) -->
+<section class="stage" id="stage4">
+  <div class="eyebrow">It's official</div>
+  <h1><span class="heart-accent">💕</span>Yes it is. 💛<span class="heart-accent">💕</span></h1>
+  <p class="sub">Consider this Yes notarized.</p>
+
+  <div class="gif-slot final-gif-slot" id="gifSlot2">
+    <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExM2RxajVyODJsdzA2d29hNjRpeDhyZnh5YnYybGRwaHVxaDVjbWdseSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l2QDYGQQKKNGq6mhq/giphy.gif" alt="cute heart gif" loading="lazy">
+  </div>
+  <div class="fine" id="fromNameLine" style="display:none; font-style:italic; margin-top:6px;"></div>
+
+  <button class="btn continue-btn" id="unlockCta" style="display:none;">🔓 Remove watermark & get shareable link</button>
+
+  <div class="share-box" id="shareBox" style="display:none">
+    <div class="share-label">💌 your unique link</div>
+    <div class="share-note">Send this link to them — it opens straight to the full surprise, question and all, with no watermark and no payment step.</div>
+    <div class="share-row">
+      <input type="text" id="shareLinkInput" readonly>
+      <button id="copyLinkBtn">Copy Link</button>
+    </div>
+  </div>
+</section>
+
+<!-- STAGE 5: Invalid / expired link -->
+<section class="stage" id="stageInvalid">
+  <div class="eyebrow">Hmm</div>
+  <h1 style="font-size:clamp(28px,5vw,44px)">This link isn't active</h1>
+  <p class="sub">This link doesn't lead anywhere yet — ask them to send you the correct one.</p>
+</section>
+
+<script>
+/* ---------- shared state ---------- */
+let customQuestion = 'Will you be mine?';
+let fromName = '';
+let isRecipient = false;
+let isPaid = false;
+const BASE_PRICE = 69; // ₹ — change as needed
+
+/* ---------- stage helpers ---------- */
+function goTo(id){
+  document.querySelectorAll('.stage').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+
+  // watermark only belongs to the unpaid, non-recipient "experience" stages
+  const experienceStages = ['stage1','stage2','stage4'];
+  document.body.classList.toggle('is-preview', experienceStages.includes(id) && !isRecipient && !isPaid);
+
+  const skipLink = document.getElementById('skipToPaymentLink');
+  if(skipLink) skipLink.style.display = (id==='stage1' && !isRecipient) ? 'block' : 'none';
+}
+
+function applyQuestionToDOM(){
+  document.getElementById('questionDisplay').textContent = customQuestion;
+  document.getElementById('stage1Eyebrow').textContent = fromName ? `A question from ${fromName}` : 'A small question';
+}
+
+function renderStage4(){
+  const cta = document.getElementById('unlockCta');
+  const shareBox = document.getElementById('shareBox');
+  const fromLine = document.getElementById('fromNameLine');
+
+  cta.style.display = (!isRecipient && !isPaid) ? 'inline-block' : 'none';
+  if(isRecipient) shareBox.style.display = 'none';
+
+  fromLine.style.display = fromName ? 'block' : 'none';
+  fromLine.textContent = fromName ? `— from ${fromName}` : '';
+}
+
+/* ---------- RECIPIENT-LINK MODE ---------- */
+/* If this page was opened with ?id=..., it's the unique link sent to the
+   other person: load the sender's question, skip straight into the same
+   yes/no + balloon + reveal experience (no watermark, no payment, no form). */
+const urlParams = new URLSearchParams(window.location.search);
+const recipientId = urlParams.get('id');
+const isRecipientMode = !!recipientId;
+
+async function initRecipientMode(){
+  let data = null;
+  try{
+    const result = await window.storage.get('proposal-link:' + recipientId, true);
+    data = (result && result.value) ? JSON.parse(result.value) : null;
+  }catch(err){
+    data = null; // key not found, or storage unavailable
+  }
+
+  if(data){
+    isRecipient = true;
+    customQuestion = data.question || 'Will you be mine?';
+    fromName = data.fromName || '';
+    applyQuestionToDOM();
+    goTo('stage1');
+  } else {
+    goTo('stageInvalid');
+  }
+}
+
+if(isRecipientMode){
+  document.documentElement.classList.add('recipient-mode');
+  // hide every stage immediately so stage0 never flashes while we check storage
+  document.querySelectorAll('.stage').forEach(s=>s.classList.remove('active'));
+  initRecipientMode();
+}
+
+/* ---------- STAGE 0: capture the question, jump into preview ---------- */
+document.getElementById('previewBtn').addEventListener('click', ()=>{
+  const q = document.getElementById('questionInput').value.trim();
+  const n = document.getElementById('fromNameInput').value.trim();
+  customQuestion = q || 'Will you be mine?';
+  fromName = n;
+  applyQuestionToDOM();
+  goTo('stage1');
+});
+
+document.getElementById('skipToPaymentLink').addEventListener('click', ()=> goTo('stage3'));
+
+/* ---------- STAGE 1: dodging No / growing Yes ---------- */
+const field = document.getElementById('choiceField');
+const noBtn = document.getElementById('noBtn');
+const yesBtn = document.getElementById('yesBtn');
+
+function dodge(){
+  const w = field.clientWidth, h = field.clientHeight;
+  const bw = noBtn.offsetWidth, bh = noBtn.offsetHeight;
+  const pad = 10;
+  const maxX = Math.max(pad, w - bw - pad);
+  const maxY = Math.max(pad, h - bh - pad);
+  const x = pad + Math.random()*(maxX-pad);
+  const y = pad + Math.random()*(maxY-pad);
+  noBtn.style.left = (x + bw/2) + 'px';
+  noBtn.style.top = (y + bh/2) + 'px';
+}
+
+// taunt copy — cycles every time "No" is actually pressed/tapped
+const noHint = document.getElementById('noHint');
+const taunts = [
+  'you\'re kidding, right? 😏',
+  'nice try — say yes.',
+  'that button\'s just for decoration.',
+  'come on, you know the answer.',
+  'not an option today, sorry 💗',
+  'yes is right there, waiting for you.',
+  'aw, so close! try "yes" instead.',
+  'the universe wants you to click yes.'
+];
+let lastTaunt = -1;
+function showTaunt(){
+  let idx;
+  do { idx = Math.floor(Math.random()*taunts.length); } while(idx===lastTaunt && taunts.length>1);
+  lastTaunt = idx;
+  if(noHint) noHint.textContent = taunts[idx];
+}
+
+// No runs the instant the pointer gets close, and also on any attempted click
+['mouseenter','mousemove','touchstart','click','focus'].forEach(evt=>{
+  noBtn.addEventListener(evt, (e)=>{
+    e.preventDefault();
+    dodge();
+    growYes();
+    if(evt==='click' || evt==='touchstart'){ showTaunt(); }
+  });
+});
+noBtn.addEventListener('click', e=>e.preventDefault());
+
+// periodic shy jitter even if untouched
+setInterval(dodge, 1800);
+
+let growth = 0;
+const maxGrowth = 40;
+function growYes(){
+  growth = Math.min(growth+1, maxGrowth);
+  const yScale = 1 + growth*0.018;   // grows slowly and steadily, up to ~1.72x after 40 tries
+  yesBtn.style.setProperty('--yscale', yScale);
+}
+
+yesBtn.addEventListener('click', ()=>{ goTo('stage2'); });
+
+/* ---------- STAGE 2: balloon pop ---------- */
+const balloonWrap = document.getElementById('balloonWrap');
+const balloonReveal = document.getElementById('balloonReveal');
+let popped = false;
+
+function confettiBurst(x,y){
+  const colors=['#ff5da2','#f5a83c','#c9a8e8','#ffffff'];
+  const heartChars=['💗','💕','💖','💘','💞','❤️','🍬','🧁'];
+  for(let i=0;i<36;i++){
+    const isHeart = Math.random() < 0.5;
+    const p=document.createElement('div');
+    p.className='confetti-piece';
+    if(isHeart){
+      p.textContent = heartChars[Math.floor(Math.random()*heartChars.length)];
+      p.style.fontSize = (Math.random()*10+14)+'px';
+      p.style.width='auto'; p.style.height='auto';
+    } else {
+      p.style.background=colors[Math.floor(Math.random()*colors.length)];
+      p.style.borderRadius = Math.random()<0.5 ? '50%' : '2px';
+    }
+    p.style.left=x+'px'; p.style.top=y+'px';
+    const angle = Math.random()*2*Math.PI;
+    const dist = 80 + Math.random()*180;
+    const dx = Math.cos(angle)*dist;
+    const dy = Math.sin(angle)*dist - 40;
+    p.animate([
+      { transform:'translate(0,0) rotate(0deg) scale(1)', opacity:1 },
+      { transform:`translate(${dx}px, ${dy+220}px) rotate(${Math.random()*720}deg) scale(${isHeart?1.2:1})`, opacity:0 }
+    ], { duration: 1100+Math.random()*600, easing:'cubic-bezier(.2,.8,.2,1)' });
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(), 1900);
+  }
+}
+
+balloonWrap.addEventListener('click', ()=>{
+  if(popped) return;
+  popped = true;
+  const rect = balloonWrap.getBoundingClientRect();
+  confettiBurst(rect.left+rect.width/2, rect.top+rect.height/2);
+  balloonWrap.classList.add('popping');
+  setTimeout(()=>{
+    balloonWrap.style.visibility='hidden';
+    balloonReveal.classList.add('show');
+  }, 220);
+});
+
+document.getElementById('toFinalBtn').addEventListener('click', ()=>{
+  renderStage4();
+  goTo('stage4');
+});
+
+/* ---------- generate the unique recipient link after a successful "Yes" payment ---------- */
+async function unlockShareableLink(){
+  const id = (window.crypto && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : 'id-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+
+  try{
+    await window.storage.set('proposal-link:' + id, JSON.stringify({
+      question: customQuestion,
+      fromName: fromName,
+      created: Date.now()
+    }), true);
+  }catch(err){
+    console.error('Could not save the shareable link — storage unavailable.', err);
+  }
+
+  const shareUrl = window.location.origin + window.location.pathname + '?id=' + id;
+  const linkInput = document.getElementById('shareLinkInput');
+  const shareBox = document.getElementById('shareBox');
+  if(linkInput && shareBox){
+    linkInput.value = shareUrl;
+    shareBox.style.display = 'block';
+  }
+}
+
+document.getElementById('copyLinkBtn')?.addEventListener('click', ()=>{
+  const linkInput = document.getElementById('shareLinkInput');
+  const btn = document.getElementById('copyLinkBtn');
+  linkInput.select();
+  linkInput.setSelectionRange(0, 99999);
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(linkInput.value).catch(()=>{ document.execCommand('copy'); });
+  } else {
+    document.execCommand('copy');
+  }
+  btn.textContent = 'Copied!';
+  setTimeout(()=>{ btn.textContent = 'Copy Link'; }, 1800);
+});
+
+document.getElementById('unlockCta').addEventListener('click', ()=> goTo('stage3'));
+
+document.getElementById('confirmPaidBtn')?.addEventListener('click', async ()=>{
+  isPaid = true;
+  await unlockShareableLink();
+  renderStage4();
+  goTo('stage4');
+});
+
+/* ---------- STAGE 3: Razorpay checkout ---------- */
+document.getElementById('payBtn').addEventListener('click', ()=>{
+  // ---- RAZORPAY CONFIG ----
+  // For production, the amount + order_id should ideally be created on YOUR
+  // backend (never trust a client-side amount) and passed in here. This demo
+  // charges a fixed client-side amount for simplicity.
+  const options = {
+    key: 'rzp_live_Sz9gct8RO5E1jB', // <-- your Razorpay Key ID
+    amount: BASE_PRICE * 100,       // Razorpay expects paise
+    currency: 'INR',
+    name: 'Will You Be Mine',
+    description: 'Official Yes Confirmation',
+    handler: async function(response){
+      // response.razorpay_payment_id is available here after success
+      isPaid = true;
+      await unlockShareableLink();
+      renderStage4();
+      goTo('stage4');
+    },
+    theme: { color: '#ff5da2' },
+    modal: { ondismiss: function(){
+      // Checkout closed without the success handler firing — this happens
+      // often with UPI/QR payments. Don't assume failure; offer a manual
+      // fallback instead of leaving the payer stuck on stage3.
+      document.getElementById('dismissFallback').style.display = 'block';
+    } }
+  };
+  try{
+    const rzp = new Razorpay(options);
+    rzp.open();
+  }catch(err){
+    alert('Razorpay key not configured yet — add your Key ID in the script to enable live payments.');
+  }
+});
+</script>
+
+</body>
+</html>
