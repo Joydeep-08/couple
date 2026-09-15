@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Will You? 💍</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,500;1,600;1,700&family=Dancing+Script:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+  // runs immediately, before the body paints — if this is a shared link (?id=...)
+  // mark <html> so CSS can hide the edit form and show a loader instead of ever
+  // letting it flash on screen
+  (function(){
+    var params = new URLSearchParams(location.search);
+    if(params.get('id')){
+      document.documentElement.classList.add('viewer-boot');
+    }
+  })();
+</script>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Inter',sans-serif;
+    background:#f6c9d6;
+    min-height:100vh;
+    display:flex;align-items:flex-start;justify-content:center;
+    padding:28px 14px 80px;
+  }
+  .font-display{font-family:'Playfair Display',serif}
+  .font-script{font-family:'Dancing Script',cursive}
+
+  /* ---- outer frame w/ bow+heart pattern ---- */
+  .frame{
+    width:100%;max-width:460px;
+    background:#7d1730;
+    border-radius:22px;
+    padding:16px;
+    position:relative;
+    box-shadow:0 24px 60px -20px rgba(90,10,30,.55);
+  }
+  .frame-pattern{
+    position:absolute;inset:0;border-radius:22px;
+    background-image:
+      radial-gradient(circle at 8% 12%, rgba(255,255,255,.05) 0 3px, transparent 4px),
+      radial-gradient(circle at 32% 30%, rgba(255,255,255,.05) 0 3px, transparent 4px),
+      radial-gradient(circle at 58% 10%, rgba(255,255,255,.05) 0 3px, transparent 4px),
+      radial-gradient(circle at 84% 26%, rgba(255,255,255,.05) 0 3px, transparent 4px),
+      radial-gradient(circle at 14% 54%, rgba(255,255,255,.05) 0 3px, transparent 4px),
+      radial-gradient(circle at 44% 68%, rgba(255,255,255,.05) 0 3px, transparent 4px),
+      radial-gradient(circle at 70% 52%, rgba(255,255,255,.05) 0 3px, transparent 4px),
+      radial-gradient(circle at 92% 74%, rgba(255,255,255,.05) 0 3px, transparent 4px),
+      radial-gradient(circle at 20% 88%, rgba(255,255,255,.05) 0 3px, transparent 4px),
+      radial-gradient(circle at 62% 92%, rgba(255,255,255,.05) 0 3px, transparent 4px);
+    pointer-events:none;
+  }
+  .frame-icons{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:22px}
+  .frame-icons svg{position:absolute;opacity:.16}
+
+  .card{
+    position:relative;z-index:1;
+    background:#fffaf5;
+    border-radius:16px;
+    min-height:560px;
+    display:flex;flex-direction:column;
+    overflow:hidden;
+  }
+
+  /* corner cherries */
+  .corner-deco{position:absolute;width:46px;height:52px;z-index:2;opacity:.92}
+  .corner-tr{top:14px;right:16px}
+  .corner-bl{bottom:14px;left:16px;transform:scaleX(-1)}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes pop{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
+  .fade-up{animation:fadeUp .5s ease both}
+  .spinner{width:26px;height:26px;border-radius:50%;border:3px solid #ecc3cf;border-top-color:#b83b5e;animation:spin .8s linear infinite}
+
+  .btn{
+    padding:10px 26px;border-radius:24px;font-size:12px;font-weight:600;
+    letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;
+    border:1.5px solid #b83b5e;background:#b83b5e;color:#fff;font-family:'Inter',sans-serif;
+    transition:transform .15s,opacity .15s;
+  }
+  .btn:hover{transform:translateY(-1px)}
+  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+  .btn-ghost{
+    padding:10px 26px;border-radius:24px;font-size:12px;font-weight:600;
+    letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;
+    border:1.5px solid #b83b5e;background:transparent;color:#b83b5e;font-family:'Inter',sans-serif;
+  }
+  .btn-sm{padding:8px 16px;font-size:11px}
+
+  .inp{
+    width:100%;padding:9px 12px;border-radius:9px;border:1.5px solid #ecc3cf;
+    font-size:14px;font-family:'Inter',sans-serif;outline:none;background:#fffdfb;
+  }
+  .inp:focus{border-color:#b83b5e}
+
+  .photo-slot{
+    border:1.5px dashed #ecc3cf;border-radius:12px;aspect-ratio:1/1;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    overflow:hidden;position:relative;background:#fffdfb;
+  }
+  .photo-slot img{width:100%;height:100%;object-fit:cover}
+
+  ::-webkit-scrollbar{width:0}
+
+  .write-cursor{
+    display:inline-block;width:1.5px;height:12px;background:#b83b5e;
+    margin-left:2px;vertical-align:-1px;animation:blinkCursor .9s steps(1) infinite;
+  }
+  @keyframes blinkCursor{50%{opacity:0}}
+
+  .field-label{font-size:11px;color:#8a4a5c;font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px}
+
+  /* ---- question picker (intake) ---- */
+  .q-opt-row{
+    display:flex;align-items:center;gap:10px;padding:9px 12px;
+    border:1.5px solid #ecc3cf;border-radius:10px;cursor:pointer;background:#fffdfb;
+    transition:border .15s,background .15s;
+  }
+  .q-opt-row:hover{border-color:#b83b5e}
+  .q-opt-row.selected{border-color:#b83b5e;background:#fff2f5}
+  .q-opt-row input[type=radio]{accent-color:#b83b5e;width:16px;height:16px;flex-shrink:0}
+  .q-opt-row span{font-size:13px;color:#3a0f1a}
+
+  /* ---- phone lock-screen notifications ---- */
+  .phone-bg{
+    flex:1;display:flex;flex-direction:column;align-items:center;
+    background:linear-gradient(180deg,#f6c9d6,#f3b4c8);
+    padding:26px 18px 30px;
+  }
+  .phone-time{color:#fff;text-align:center;margin-bottom:22px;text-shadow:0 2px 6px rgba(120,20,50,.25)}
+  .phone-time .hh{font-family:'Playfair Display',serif;font-size:44px;font-weight:700;line-height:1}
+  .phone-time .dd{font-size:12px;letter-spacing:1px;margin-top:4px;opacity:.9;font-family:'Inter',sans-serif}
+  .notif{
+    width:100%;max-width:320px;background:#fffaf5;border-radius:16px;
+    padding:11px 13px;display:flex;gap:10px;margin-bottom:10px;
+    box-shadow:0 10px 20px -10px rgba(120,20,50,.35);
+  }
+  .notif-ico{width:34px;height:34px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px}
+  .notif-body{flex:1;min-width:0}
+  .notif-top{display:flex;justify-content:space-between;font-size:9.5px;color:#b8718a;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;font-family:'Inter',sans-serif}
+  .notif-sender{font-size:12.5px;font-weight:600;color:#3a0f1a;font-family:'Inter',sans-serif}
+  .notif-msg{font-size:11.5px;color:#6b3648;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Inter',sans-serif}
+  .notif-target{
+    cursor:pointer;background:#fdeef0;border:1.5px solid #e28aa3;
+    animation:pop 1.6s ease-in-out infinite;
+  }
+  .notif-target .notif-ico{background:#b83b5e;color:#fff}
+  .phone-hint{color:#fff;font-size:13px;margin-top:14px;text-shadow:0 1px 4px rgba(120,20,50,.25);font-family:'Dancing Script',cursive}
+
+  /* ---- question scene (yes/no) ---- */
+  .question-scene{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center;position:relative}
+  .q-title{font-family:'Playfair Display',serif;font-style:italic;font-weight:700;font-size:22px;color:#3a0f1a;white-space:pre-line;line-height:1.35;margin-bottom:8px}
+  .q-sub{font-size:12.5px;color:#b8718a;margin-bottom:34px}
+  .q-btnrow{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;position:relative}
+  .yes-btn{
+    padding:13px 32px;border:none;border-radius:26px;background:#b83b5e;color:#fff;
+    font-weight:700;font-size:14px;letter-spacing:.3px;cursor:pointer;
+    box-shadow:0 10px 24px -8px rgba(184,59,94,.55);position:relative;z-index:2;
+    font-family:'Inter',sans-serif;transition:transform .15s;
+  }
+  .yes-btn:hover,.yes-btn:active{transform:scale(1.07)}
+  .no-btn{
+    padding:13px 32px;border:1.5px solid #b83b5e;border-radius:26px;background:#fffaf5;
+    color:#b83b5e;font-weight:700;font-size:14px;cursor:pointer;font-family:'Inter',sans-serif;
+    position:fixed;z-index:220;transition:left .12s,top .12s;
+  }
+  #q-toast{
+    position:fixed;bottom:120px;left:50%;transform:translateX(-50%) translateY(8px);
+    background:rgba(184,59,94,.94);color:#fff;padding:10px 20px;border-radius:24px;
+    font-family:'Dancing Script',cursive;font-size:16px;font-weight:600;z-index:300;
+    opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;
+    white-space:nowrap;max-width:82vw;text-align:center;
+    box-shadow:0 8px 24px -6px rgba(184,59,94,.5);
+  }
+  #q-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ---- celebration scene ---- */
+  .celeb-scene{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px 24px;text-align:center;position:relative;overflow:hidden}
+  .celeb-title{font-family:'Playfair Display',serif;font-weight:700;font-size:23px;color:#3a0f1a;margin-bottom:10px;animation:pop 1.1s infinite}
+  .celeb-msg{font-size:12.5px;color:#8a4a5c;max-width:280px;margin-bottom:20px;line-height:1.65}
+  .celeb-gif{width:180px;height:180px;border-radius:18px;overflow:hidden;box-shadow:0 16px 34px -12px rgba(184,59,94,.55);margin-bottom:22px}
+  .celeb-gif img{width:100%;height:100%;object-fit:cover;display:block}
+  .confetti-layer{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+  .cele-heart{position:absolute;bottom:-30px;animation:confettiUp linear forwards}
+  @keyframes confettiUp{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(-520px) rotate(600deg);opacity:0}}
+
+  /* ---- certificate scene ---- */
+  .cert-scene{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 22px;text-align:center}
+  .cert-card{position:relative;width:100%;background:#fffdf8;border:2px solid #d9a9b5;border-radius:8px;padding:28px 20px 22px}
+  .cert-card::before{content:'';position:absolute;inset:6px;border:1px solid #e7b9c6;border-radius:4px;pointer-events:none}
+  .cert-kicker{font-size:9.5px;letter-spacing:3px;text-transform:uppercase;color:#b8718a;margin-bottom:8px}
+  .cert-title{font-family:'Playfair Display',serif;font-style:italic;font-weight:700;font-size:20px;color:#3a0f1a;margin-bottom:16px}
+  .cert-body{font-size:12px;line-height:1.85;color:#4a2530}
+  .cert-names{font-family:'Dancing Script',cursive;font-size:21px;color:#b83b5e;margin:4px 0}
+  .cert-q{font-family:'Playfair Display',serif;font-style:italic;font-size:13px;color:#3a0f1a;margin:10px 0}
+  .cert-date{font-size:10px;color:#b8718a;margin-top:14px;letter-spacing:.5px}
+  .cert-seal{font-size:30px;margin-top:8px}
+
+  /* ---- pinterest-style vision board (final step) ---- */
+  .board-masonry{column-count:2;column-gap:14px;padding:6px 4px 4px}
+  .board-item{break-inside:avoid;margin-bottom:16px}
+  .board-item.full-span{column-span:all}
+  .board-photo{background:#fffefd;padding:8px 8px 22px;border-radius:3px;box-shadow:0 12px 24px -10px rgba(184,59,94,.45);position:relative}
+  .board-photo img{width:100%;object-fit:cover;border-radius:1px;display:block;background:#f3d3da}
+  .board-photo.focus img{aspect-ratio:4/5}
+  .board-photo.side{width:80%;margin:0 auto}
+  .board-photo.side img{aspect-ratio:1/1}
+  .board-caption{position:absolute;left:50%;bottom:5px;transform:translateX(-50%);font-family:'Dancing Script',cursive;font-size:13px;font-weight:600;color:#b83b5e;white-space:nowrap}
+  .board-note{background:#fff8f4;border:1px solid #f3d3da;border-radius:10px;padding:13px 12px;box-shadow:0 10px 20px -12px rgba(184,59,94,.4);font-size:10.5px;color:#6b3648;line-height:1.6;text-align:left}
+  .board-note h4{font-family:'Dancing Script',cursive;font-size:16px;color:#b83b5e;margin-bottom:6px;font-weight:600;text-align:center}
+  .board-note ul{list-style:none;text-align:left}
+  .board-note li{margin-bottom:4px;padding-left:13px;position:relative}
+  .board-note li::before{content:'♥';position:absolute;left:0;top:1px;font-size:8px;color:#e28aa3}
+  .board-tape{position:absolute;width:44px;height:15px;background:rgba(247,214,222,.9);border:1px solid rgba(184,59,94,.15);top:-8px;left:50%;transform:translateX(-50%) rotate(-3deg);border-radius:2px;box-shadow:0 2px 3px rgba(0,0,0,.08);z-index:2}
+  .board-clip{position:absolute;top:-12px;right:14px;font-size:20px;transform:rotate(14deg);z-index:2;filter:drop-shadow(0 2px 2px rgba(0,0,0,.15))}
+  .board-quote{font-family:'Playfair Display',serif;font-style:italic;font-size:13px;color:#3a0f1a;padding:16px 18px;background:#fdeef0;border-radius:12px;line-height:1.65;position:relative}
+  .board-quote::before,.board-quote::after{content:'"';font-family:'Playfair Display',serif;font-size:26px;color:#e28aa3;position:absolute}
+  .board-quote::before{top:2px;left:8px}
+  .board-quote::after{bottom:-14px;right:10px}
+  .board-ribbon{background:#b83b5e;color:#fff;border-radius:10px;padding:12px 10px;font-size:11px;letter-spacing:.3px;text-align:center;line-height:1.6}
+  .board-ribbon .font-script{font-size:16px;display:block;margin-top:2px}
+
+  /* shared-link boot state — kills the form flash before JS decides what to show */
+  html.viewer-boot #step-intake{display:none !important}
+  html.viewer-boot #step-bootload{display:flex !important}
+</style>
+</head>
+<body>
+
+<div class="frame" id="frame">
+  <div class="frame-pattern"></div>
+  <div class="frame-icons" id="frame-icons"></div>
+  <div class="card" id="card">
+
+    <!-- ============ STEP BOOT — SHARED LINK LOADING / ERROR ============ -->
+    <section id="step-bootload" style="display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;padding:36px 26px;text-align:center">
+      <div class="spinner" id="bootload-spinner"></div>
+      <div style="margin-top:16px;font-size:12.5px;color:#b8718a" id="bootload-text">Opening your surprise…</div>
+      <button id="bootload-retry" class="btn btn-sm" style="display:none;margin-top:18px" onclick="location.reload()">Retry</button>
+    </section>
+
+    <!-- ============ STEP 0 — INTAKE ============ -->
+    <section id="step-intake" class="fade-up" style="padding:34px 26px;flex:1;display:flex;flex-direction:column">
+      <div id="resume-banner" style="display:none;background:#fff2f5;border:1.5px solid #ecc3cf;border-radius:12px;padding:12px 14px;margin-bottom:18px;font-size:12px;color:#8a4a5c">
+        <div style="margin-bottom:8px">You already paid for a surprise that didn't finish generating. Want to pick up where it left off?</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-sm" style="flex:1" onclick="resumePendingOrder()">Resume</button>
+          <button class="btn-ghost btn-sm" style="flex:1" onclick="discardPendingOrder()">Discard</button>
+        </div>
+      </div>
+      <div class="font-display" style="font-size:24px;font-weight:700;color:#3a0f1a;text-align:center;margin-bottom:4px">Ask the Question</div>
+      <p style="text-align:center;color:#b8718a;font-size:12.5px;margin-bottom:22px">A whole little proposal experience — build it in a minute.</p>
+
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <input id="in-recipient" class="inp" placeholder="Her name" />
+        <input id="in-sender" class="inp" placeholder="Your name" />
+
+        <div>
+          <div class="field-label">Pick your question</div>
+          <div id="q-options" style="display:flex;flex-direction:column;gap:8px">
+            <label class="q-opt-row selected">
+              <input type="radio" name="proposal-q" value="Will you be my girlfriend?" checked>
+              <span>Will you be my girlfriend?</span>
+            </label>
+            <label class="q-opt-row">
+              <input type="radio" name="proposal-q" value="Will you forever be mine?">
+              <span>Will you forever be mine?</span>
+            </label>
+            <label class="q-opt-row">
+              <input type="radio" name="proposal-q" value="Do you still love me?">
+              <span>Do you still love me?</span>
+            </label>
+            <label class="q-opt-row">
+              <input type="radio" name="proposal-q" value="custom">
+              <span>Write your own…</span>
+            </label>
+          </div>
+          <input type="text" id="in-question-custom" class="inp" placeholder="Type your question…" style="display:none;margin-top:8px" maxlength="80">
+        </div>
+
+        <div>
+          <div class="field-label">Three photos, for the board</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+            <div class="photo-slot" data-slot="0" onclick="pickPhoto(0)"><span style="font-size:10px;color:#d9a9b5;text-align:center;padding:0 6px">photo 1</span></div>
+            <div class="photo-slot" data-slot="1" onclick="pickPhoto(1)"><span style="font-size:10px;color:#d9a9b5;text-align:center;padding:0 6px">photo 2</span></div>
+            <div class="photo-slot" data-slot="2" onclick="pickPhoto(2)"><span style="font-size:10px;color:#d9a9b5;text-align:center;padding:0 6px">photo 3</span></div>
+          </div>
+          <input type="file" id="file-input" accept="image/*" class="hidden" style="display:none" />
+        </div>
+
+        <div>
+          <div class="field-label">Your letter (shown after she says yes)</div>
+          <textarea id="in-message" class="inp" rows="7" style="resize:none">I've been trying to find the right way to say this for weeks now, and honestly there isn't one — so I'm just going to say it straight.
+
+Every single day with you has made me more sure of this than anything else in my life. You're my favorite person to talk to, my favorite person to be quiet with, and somehow my favorite person to argue with about the dumbest things too.
+
+So I made you this instead of just asking you normally, because you deserve a little bit of extra effort — and because I really, really wanted to see your face when the button ran away from you 😌
+
+Whatever happens next, thank you for being exactly who you are.
+
+Yours, always.</textarea>
+        </div>
+      </div>
+
+      <div id="intake-err" style="display:none;color:#c62828;font-size:12px;margin-top:10px">Add both names and a message first.</div>
+      <button class="btn" style="margin-top:20px;width:100%" onclick="startPreview()">Preview the Proposal →</button>
+    </section>
+
+    <!-- ============ STEP PAY — COUPON + PAYMENT ============ -->
+    <section id="step-payment" style="display:none;flex:1;flex-direction:column;padding:34px 26px">
+      <div class="font-display" style="font-size:22px;font-weight:700;color:#3a0f1a;text-align:center;margin-bottom:6px">Almost there</div>
+      <p style="text-align:center;color:#b8718a;font-size:12.5px;margin-bottom:26px">Unlock the link to send it to her.</p>
+
+      <div style="background:#fff2f5;border-radius:14px;padding:20px;text-align:center;margin-bottom:18px">
+        <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#b8718a;margin-bottom:6px">Total</div>
+        <div class="font-display" id="pay-price" style="font-size:34px;font-weight:700;color:#b83b5e">₹99</div>
+        <div id="pay-coupon-applied" style="display:none;font-size:11px;color:#4a8a5c;margin-top:4px"></div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:6px">
+        <input id="in-coupon" class="inp" placeholder="Have a coupon code?" style="text-transform:uppercase" />
+        <button class="btn-ghost btn-sm" onclick="applyCoupon()">Apply</button>
+      </div>
+      <div id="coupon-err" style="display:none;color:#c62828;font-size:12px;margin-bottom:8px">Invalid coupon code.</div>
+
+      <button id="pay-btn" class="btn" style="margin-top:18px;width:100%" onclick="handlePayment()">Pay & Get Link</button>
+      <button class="btn-ghost" style="margin-top:10px;width:100%" onclick="goTo('step-gallery')">← Back</button>
+
+      <div id="pay-loading" style="display:none;align-items:center;justify-content:center;gap:10px;margin-top:18px">
+        <div class="spinner"></div>
+        <span id="pay-loading-text" style="font-size:12.5px;color:#b8718a">Creating your surprise…</span>
+      </div>
+
+      <div id="pay-fail" style="display:none;background:#fff2f5;border:1.5px solid #ecc3cf;border-radius:12px;padding:14px;margin-top:18px;font-size:12px;color:#8a4a5c;text-align:center">
+        <div style="margin-bottom:10px">Payment went through, but we hit a snag creating the link. Your payment is safe — just tap retry.</div>
+        <button class="btn" style="width:100%" onclick="retryFinalize()">Retry</button>
+      </div>
+    </section>
+
+    <!-- ============ STEP LINK — SHAREABLE LINK ============ -->
+    <section id="step-linkout" style="display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;padding:36px 26px;text-align:center">
+      <div class="font-display fade-up" style="font-size:22px;font-weight:700;color:#3a0f1a;margin-bottom:10px">It's ready 💍</div>
+      <p style="color:#b8718a;font-size:12.5px;margin-bottom:20px">Copy this link and send it to her.</p>
+      <div style="display:flex;gap:8px;width:100%">
+        <input id="out-link" class="inp" readonly style="font-size:11px" />
+        <button class="btn btn-sm" onclick="copyLink()">Copy</button>
+      </div>
+      <div id="copy-msg" style="display:none;color:#4a8a5c;font-size:11px;margin-top:8px">Copied!</div>
+      <button class="btn-ghost" style="margin-top:20px" onclick="goTo('step-notifications')">Preview it</button>
+    </section>
+
+    <!-- ============ STEP 1 — NOTIFICATIONS (phone lock screen) ============ -->
+    <section id="step-notifications" style="display:none;flex:1;flex-direction:column">
+      <button id="notif-edit-btn" class="btn-ghost btn-sm" style="position:absolute;top:14px;left:14px;z-index:5" onclick="goTo('step-intake')">← Edit</button>
+      <div class="phone-bg">
+        <div class="phone-time">
+          <div class="hh" id="notif-clock">9:41</div>
+          <div class="dd">Just Because</div>
+        </div>
+
+        <div class="notif">
+          <div class="notif-ico" style="background:#ffe3ec">📦</div>
+          <div class="notif-body">
+            <div class="notif-top"><span>Delivery</span><span>2m</span></div>
+            <div class="notif-sender">Your package</div>
+            <div class="notif-msg">Out for delivery, arriving today</div>
+          </div>
+        </div>
+        <div class="notif">
+          <div class="notif-ico" style="background:#e3f3e6">💧</div>
+          <div class="notif-body">
+            <div class="notif-top"><span>Reminder</span><span>6m</span></div>
+            <div class="notif-sender">Hydration check</div>
+            <div class="notif-msg">Drink some water, you forgot again</div>
+          </div>
+        </div>
+        <div class="notif">
+          <div class="notif-ico" style="background:#f3e3fb">🎧</div>
+          <div class="notif-body">
+            <div class="notif-top"><span>Music</span><span>14m</span></div>
+            <div class="notif-sender">Your playlist</div>
+            <div class="notif-msg">Updated with 12 new tracks</div>
+          </div>
+        </div>
+        <div class="notif notif-target" onclick="openNotification()">
+          <div class="notif-ico">💌</div>
+          <div class="notif-body">
+            <div class="notif-top"><span>Now</span><span>•</span></div>
+            <div class="notif-sender" id="notif-sender-name">Someone</div>
+            <div class="notif-msg">has a question for you 💕 tap to open</div>
+          </div>
+        </div>
+        <div class="phone-hint">tap the glowing one</div>
+      </div>
+    </section>
+
+    <!-- ============ STEP 2 — ENVELOPE ============ -->
+    <section id="step-envelope" style="display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;padding:36px 26px;text-align:center">
+      <button id="env-edit-btn" class="btn-ghost btn-sm" style="position:absolute;top:14px;left:14px;z-index:5" onclick="goBackTo('step-intake')">← Edit</button>
+      <div class="font-display fade-up" style="font-size:26px;font-weight:700;color:#3a0f1a;margin-bottom:26px" id="env-title">A Little Something</div>
+
+      <div id="envelope" class="fade-up" onclick="openEnvelope()" style="cursor:pointer;width:230px;position:relative;perspective:600px">
+        <div style="width:230px;height:150px;background:#fff6f0;border-radius:6px;position:relative;box-shadow:0 16px 30px -12px rgba(90,10,30,.35);overflow:hidden">
+          <img id="env-photo" src="photo1.jpeg" style="width:100%;height:100%;object-fit:cover;opacity:.9" />
+          <div style="position:absolute;inset:0;background:linear-gradient(160deg,rgba(255,246,240,.55),rgba(255,246,240,.15))"></div>
+          <div id="env-flap" style="position:absolute;top:0;left:0;width:0;height:0;border-left:115px solid transparent;border-right:115px solid transparent;border-top:78px solid #fdeef0;transform-origin:top;transition:transform .6s ease"></div>
+          <div style="position:absolute;top:58px;left:50%;transform:translateX(-50%);width:38px;height:38px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e28aa3,#b83b5e);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 6px rgba(0,0,0,.25);z-index:2">
+            <span style="color:#fff;font-family:'Playfair Display',serif;font-style:italic;font-size:16px">C</span>
+          </div>
+        </div>
+      </div>
+      <div class="font-script fade-up" style="font-size:15px;color:#b8718a;margin-top:18px" id="env-hint">tap to open</div>
+      <div style="font-size:10px;letter-spacing:2px;color:#d9a9b5;text-transform:uppercase;margin-top:30px">designs by joy</div>
+    </section>
+
+    <!-- ============ STEP 3 — THE QUESTION (yes / no) ============ -->
+    <section id="step-question" class="question-scene" style="display:none">
+      <button class="btn-ghost btn-sm" style="position:absolute;top:14px;left:14px;z-index:5" onclick="goBackTo('step-envelope')">← Back</button>
+      <h1 class="q-title" id="q-title">Will you be my girlfriend?
+Someone 💖</h1>
+      <p class="q-sub" id="q-sub">From: Someone 💌</p>
+      <div class="q-btnrow">
+        <button class="yes-btn" id="yes-btn">Yes 💕</button>
+        <button class="no-btn" id="no-btn">No 😏</button>
+      </div>
+    </section>
+    <div id="q-toast"></div>
+
+    <!-- ============ STEP 4 — CELEBRATION ============ -->
+    <section id="step-celebration" class="celeb-scene" style="display:none">
+      <button class="btn-ghost btn-sm" style="position:absolute;top:14px;left:14px;z-index:5" onclick="goTo('step-question')">← Back</button>
+      <div class="confetti-layer" id="confetti-layer"></div>
+      <h1 class="celeb-title">Yay! I knew you'd say YES! ❤️</h1>
+      <p class="celeb-msg" id="celeb-msg">Best decision you'll ever make 😏💍</p>
+      <div class="celeb-gif">
+        <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExeHk0c2pwMHNnMHVtMmEzNnlyNzhjN2J0OXpiMTJyZ3JjMTdzd21paiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/s6fnVyWTfM2nUKuMVY/giphy.gif" alt="a warm hug" />
+      </div>
+      <button class="btn" onclick="goTo('step-letter')">Continue →</button>
+    </section>
+
+    <!-- ============ STEP 5 — LETTER ============ -->
+    <section id="step-letter" style="display:none;flex:1;flex-direction:column">
+      <div style="display:flex;flex:1;min-height:0">
+        <div style="width:38%;position:relative;overflow:hidden">
+          <img id="letter-photo" src="photo.jpeg" style="width:100%;height:100%;object-fit:cover" />
+        </div>
+        <div style="width:62%;padding:26px 20px 20px;display:flex;flex-direction:column;position:relative">
+          <div style="position:absolute;top:12px;right:14px;font-size:15px;opacity:.55">💗</div>
+          <div class="font-display" style="font-size:19px;font-style:italic;font-weight:600;color:#3a0f1a;margin-bottom:6px">Dear <span id="letter-name"></span>,</div>
+          <div style="width:34px;height:2px;background:#e7b9c6;border-radius:2px;margin-bottom:14px"></div>
+          <div id="letter-body" style="font-size:12.5px;line-height:22px;color:#4a2530;flex:1;overflow-y:auto;white-space:pre-wrap;border-left:1.5px dashed #ecc3cf;padding-left:10px;background-image:repeating-linear-gradient(to bottom, transparent, transparent 21px, #f3d3da 22px);background-position:10px 3px"><span id="letter-body-text"></span><span id="letter-cursor" class="write-cursor"></span></div>
+          <div class="font-display" style="font-style:italic;font-size:13px;color:#b83b5e;margin-top:14px;text-align:right">— <span id="letter-sender"></span></div>
+          <div style="display:flex;justify-content:space-between;margin-top:14px">
+            <button class="btn-ghost btn-sm" onclick="goTo('step-celebration')">← Back</button>
+            <button class="btn btn-sm" onclick="goTo('step-certificate')">Next</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ STEP 6 — CERTIFICATE ============ -->
+    <section id="step-certificate" class="cert-scene" style="display:none">
+      <div class="cert-card fade-up">
+        <div class="cert-kicker">Official Document</div>
+        <div class="cert-title">Certificate of Forever</div>
+        <div class="cert-body">
+          This is to certify that
+          <div class="cert-names" id="cert-recipient">Someone Special</div>
+          said <strong>YES</strong> to <span id="cert-sender-inline">Someone</span>'s question:
+          <div class="cert-q" id="cert-question">"Will you be my girlfriend?"</div>
+          and their story continues, officially, forever.
+        </div>
+        <div class="cert-date" id="cert-date"></div>
+        <div class="cert-seal">💍</div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:20px;width:100%">
+        <button class="btn-ghost btn-sm" onclick="goTo('step-letter')">← Back</button>
+        <button class="btn btn-sm" onclick="downloadCertificate()">Download 📜</button>
+        <button class="btn btn-sm" onclick="goTo('step-gallery')">Next</button>
+      </div>
+    </section>
+
+    <!-- ============ STEP 7 — VISION BOARD (pinterest-style masonry, final page) ============ -->
+    <section id="step-gallery" style="display:none;flex:1;flex-direction:column;padding:28px 22px 24px;text-align:center;overflow-y:auto">
+      <div class="font-script fade-up" style="font-size:22px;color:#3a0f1a;margin-bottom:4px">every little moment, with you</div>
+      <div class="fade-up" style="font-size:10.5px;letter-spacing:1px;color:#cda5ae;text-transform:uppercase;margin-bottom:16px">pinned, just for her</div>
+
+      <div class="board-masonry">
+
+        <!-- focus photo 1 (user upload #1) -->
+        <div class="board-item fade-up">
+          <div class="board-photo focus" style="transform:rotate(-4deg)">
+            <div class="board-tape" style="transform:translateX(-50%) rotate(-6deg)"></div>
+            <img id="board-photo-0" src="" />
+            <div class="board-caption">My Favorite Person</div>
+          </div>
+        </div>
+
+        <!-- note -->
+        <div class="board-item fade-up" style="transform:rotate(2deg)">
+          <div class="board-note">
+            <h4>Reasons Why I Love You</h4>
+            <ul>
+              <li>You understand me like no one else</li>
+              <li>You make me smile every day</li>
+              <li>You're my peace in the chaos</li>
+              <li>You're my today &amp; all my tomorrows</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- local secondary photo A -->
+        <div class="board-item fade-up">
+          <div class="board-photo side" style="transform:rotate(3deg)">
+            <span class="board-clip">📎</span>
+            <img src="photo.jpeg" />
+            <div class="board-caption">For my Love</div>
+          </div>
+        </div>
+
+        <!-- focus photo 2 (user upload #2) -->
+        <div class="board-item fade-up">
+          <div class="board-photo focus" style="transform:rotate(3deg)">
+            <span class="board-clip">📎</span>
+            <img id="board-photo-1" src="" />
+            <div class="board-caption">My Happiness</div>
+          </div>
+        </div>
+
+        <!-- quote, full width -->
+        <div class="board-item full-span fade-up" style="padding:0 4px">
+          <div class="board-quote">You're not just my girlfriend — you're my best friend, my safe place, and my greatest blessing.</div>
+        </div>
+
+        <!-- focus photo 3 (user upload #3) -->
+        <div class="board-item fade-up">
+          <div class="board-photo focus" style="transform:rotate(-3deg)">
+            <div class="board-tape"></div>
+            <img id="board-photo-2" src="" />
+            <div class="board-caption">You + Me</div>
+          </div>
+        </div>
+
+        <!-- note -->
+        <div class="board-item fade-up" style="transform:rotate(-2deg)">
+          <div class="board-note">
+            <h4>With You</h4>
+            <ul>
+              <li>I laugh a little louder</li>
+              <li>I worry a little less</li>
+              <li>I smile a lot more</li>
+              <li>I love a lot deeper</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- local secondary photo B -->
+        <div class="board-item fade-up">
+          <div class="board-photo side" style="transform:rotate(-2deg)">
+            <span class="board-clip" style="right:auto;left:14px;transform:rotate(-14deg)">📎</span>
+            <img src="photo1.jpeg" />
+            <div class="board-caption">The Goal</div>
+          </div>
+        </div>
+
+        <!-- ribbon, full width -->
+        <div class="board-item full-span fade-up">
+          <div class="board-ribbon">
+            every moment with you is my favorite
+            <span class="font-script">I Love You 💕</span>
+          </div>
+        </div>
+
+      </div>
+
+      <div style="display:flex;justify-content:space-between;margin-top:26px" id="gallery-actions">
+        <button class="btn-ghost" onclick="goTo('step-certificate')">← Back</button>
+        <button class="btn" onclick="goToPayment()">Generate Link →</button>
+      </div>
+      <button class="btn-ghost" style="margin-top:10px;width:100%" onclick="restartFlow()" id="gallery-restart">Start Over</button>
+    </section>
+
+  </div>
+</div>
+
+<script>
+/* ---------- config ---------- */
+const SUPABASE_URL = 'https://sdllonxgnaxlyvtowfku.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkbGxvbnhnbmF4bHl2dG93Zmt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzk3OTQsImV4cCI6MjEwMDcxNTc5NH0.tn2vWiph6mAv7VKdM4Hl8_VtegmDbfTvZirxiZovL4M';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const RAZORPAY_KEY = 'rzp_live_SmizRaPApu81ZS';
+const BASE_PRICE = 99;
+const COUPONS = { 'FAHH': 0, 'FAHH1': 1, 'LOVE': 59 };
+const PHOTO_COUNT = 3; // photos collected from the user for the vision board's focus spots
+const TABLE = 'proposal_flow';   // ⚠️ create this table in Supabase before deploying — see columns used below
+const BUCKET = 'photos';         // reuses the same storage bucket as your other apps
+
+const SARCASMS = [
+  "Come on, just say yes na 🥺",
+  "The button ran away because it knows you want to say yes 😭",
+  "Try again… it's not gonna bite 😅",
+  "Even the button knows you wanna say yes 💀",
+  "Bro the No button is scared of you 😂",
+  "Okay but what if you just… said yes? 👀",
+  "Your heart said yes, your finger just slipped 🤭",
+  "NO?? In this economy?? 😤",
+  "The audacity… but okay… try again bestie",
+  "I'll wait. I'm very patient. 😇",
+  "This is a yes-only zone 🚫",
+  "Error 404: No button not found 😂",
+  "That's so funny haha. Now say yes. 🙂",
+  "The No button just filed a restraining order 🏃"
+];
+
+/* ---------- state ---------- */
+let state = { recipient:'', sender:'', message:'', question:'', photos:[null,null,null], photoFiles:[null,null,null] };
+let activeSlot = null;
+let currentPrice = BASE_PRICE;
+let appliedCoupon = null;
+let isViewerMode = false;
+let qSarcasmIdx = 0;
+let qToastTimer = null;
+
+/* ---------- decorative corner cherries + scattered bow/heart icons ---------- */
+function cherrySVG(){
+  return `<svg viewBox="0 0 40 44" width="40" height="44" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20 4 Q20 14 20 20" stroke="#e7b9c6" stroke-width="1.4" fill="none"/>
+    <path d="M12 6 Q20 2 28 6" stroke="#e7b9c6" stroke-width="1.4" fill="none"/>
+    <circle cx="14" cy="30" r="8" fill="#b83b5e"/>
+    <circle cx="26" cy="30" r="8" fill="#93304c"/>
+  </svg>`;
+}
+(function initDeco(){
+  const tr=document.createElement('div'); tr.className='corner-deco corner-tr'; tr.innerHTML=cherrySVG();
+  const bl=document.createElement('div'); bl.className='corner-deco corner-bl'; bl.innerHTML=cherrySVG();
+  document.getElementById('frame').append(tr,bl);
+})();
+
+function bowHeartSVG(){
+  return `<svg viewBox="0 0 30 30" width="22" height="22"><path d="M15 8c-2-4-8-3-8 1 0 4 5 6 8 10 3-4 8-6 8-10 0-4-6-5-8-1z" fill="#ffffff"/></svg>`;
+}
+(function scatterIcons(){
+  const wrap = document.getElementById('frame-icons');
+  const positions = [[6,8],[88,6],[10,92],[90,90],[50,4],[4,50],[94,50],[50,95]];
+  positions.forEach(([x,y])=>{
+    const el=document.createElement('div');
+    el.style.left=x+'%'; el.style.top=y+'%'; el.style.transform='translate(-50%,-50%)';
+    el.innerHTML=bowHeartSVG();
+    wrap.appendChild(el);
+  });
+})();
+
+/* ---------- question picker (intake) ---------- */
+document.querySelectorAll('#q-options input[type=radio]').forEach(radio=>{
+  radio.addEventListener('change', ()=>{
+    document.querySelectorAll('.q-opt-row').forEach(row=>row.classList.remove('selected'));
+    radio.closest('.q-opt-row').classList.add('selected');
+    const customEl = document.getElementById('in-question-custom');
+    if(radio.value === 'custom'){
+      customEl.style.display = 'block';
+      customEl.focus();
+    } else {
+      customEl.style.display = 'none';
+    }
+  });
+});
+
+/* ---------- intake: photos ---------- */
+function pickPhoto(idx){ activeSlot = idx; document.getElementById('file-input').click(); }
+
+function compressImage(file, maxDim=720, quality=0.68){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onerror = ()=> reject(new Error('Could not read file'));
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onerror = ()=> reject(new Error('Could not load image'));
+      img.onload = ()=>{
+        let w = img.width, h = img.height;
+        if(w > h && w > maxDim){ h = Math.round(h * maxDim / w); w = maxDim; }
+        else if(h >= w && h > maxDim){ w = Math.round(w * maxDim / h); h = maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function dataUrlToBlob(dataUrl){
+  const [meta, b64] = dataUrl.split(',');
+  const mime = meta.match(/:(.*?);/)[1];
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
+document.getElementById('file-input').addEventListener('change', async e=>{
+  const file = e.target.files[0];
+  const idx = activeSlot;
+  if(!file || idx===null) return;
+  const slot = document.querySelector(`.photo-slot[data-slot="${idx}"]`);
+  slot.innerHTML = `<span style="font-size:10px;color:#d9a9b5">optimizing…</span>`;
+  try{
+    const dataUrl = await compressImage(file);
+    state.photos[idx] = dataUrl;
+    state.photoFiles[idx] = dataUrl;
+    slot.innerHTML = `<img src="${dataUrl}" />`;
+  }catch(err){
+    console.error(err);
+    slot.innerHTML = `<span style="font-size:10px;color:#c62828;text-align:center;padding:0 6px">couldn't read that photo — try another</span>`;
+  }
+  e.target.value = '';
+});
+
+/* ---------- date formatting ---------- */
+function fmtDate(d){
+  const dt = d ? new Date(d) : new Date();
+  return dt.toLocaleDateString(undefined, { day:'numeric', month:'long', year:'numeric' });
+}
+
+function populateExperience(recipient, sender, question, message, dateVal){
+  document.getElementById('notif-sender-name').textContent = sender;
+  document.getElementById('env-title').textContent = 'A Little Something';
+  document.getElementById('q-title').textContent = `${question}\n${recipient} 💖`;
+  document.getElementById('q-sub').textContent = `From: ${sender} 💌`;
+  document.getElementById('celeb-msg').textContent = `Best decision you'll ever make, ${recipient} 😏💍`;
+  document.getElementById('letter-name').textContent = recipient;
+  document.getElementById('letter-sender').textContent = sender;
+  document.getElementById('cert-recipient').textContent = recipient;
+  document.getElementById('cert-sender-inline').textContent = sender;
+  document.getElementById('cert-question').textContent = `"${question}"`;
+  document.getElementById('cert-date').textContent = fmtDate(dateVal);
+}
+
+/* ---------- intake -> preview ---------- */
+function startPreview(){
+  const recipient = document.getElementById('in-recipient').value.trim();
+  const sender = document.getElementById('in-sender').value.trim();
+  const message = document.getElementById('in-message').value.trim();
+  if(!recipient || !sender || !message){
+    document.getElementById('intake-err').style.display='block';
+    return;
+  }
+  document.getElementById('intake-err').style.display='none';
+
+  const selectedQ = document.querySelector('input[name="proposal-q"]:checked');
+  let question = selectedQ ? selectedQ.value : 'Will you be my girlfriend?';
+  if(question === 'custom'){
+    question = document.getElementById('in-question-custom').value.trim() || 'Will you be mine?';
+  }
+
+  state.recipient = recipient; state.sender = sender; state.message = message; state.question = question;
+
+  resetQuestionUI();
+  populateBoard(state.photos);
+  populateExperience(recipient, sender, question, message, new Date());
+
+  goTo('step-notifications');
+}
+
+function goToPayment(){
+  currentPrice = BASE_PRICE;
+  appliedCoupon = null;
+  document.getElementById('pay-price').textContent = '₹' + currentPrice;
+  document.getElementById('pay-coupon-applied').style.display = 'none';
+  document.getElementById('in-coupon').value = '';
+  document.getElementById('coupon-err').style.display = 'none';
+  updatePayBtnLabel();
+
+  goTo('step-payment');
+}
+
+/* ---------- coupons ---------- */
+function applyCoupon(){
+  const code = document.getElementById('in-coupon').value.trim().toUpperCase();
+  const errEl = document.getElementById('coupon-err');
+  if(!code || !(code in COUPONS)){
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+  appliedCoupon = code;
+  currentPrice = COUPONS[code];
+  document.getElementById('pay-price').textContent = '₹' + currentPrice;
+  const appliedEl = document.getElementById('pay-coupon-applied');
+  appliedEl.style.display = 'block';
+  appliedEl.textContent = `"${code}" applied`;
+  updatePayBtnLabel();
+}
+function updatePayBtnLabel(){
+  document.getElementById('pay-btn').textContent = currentPrice === 0 ? 'Get Link — Free' : `Pay ₹${currentPrice} & Get Link`;
+}
+
+/* ---------- resilience helpers ---------- */
+const PENDING_KEY = 'proposal_pending_order_v1';
+
+function saveOrderLocal(order){
+  try{ localStorage.setItem(PENDING_KEY, JSON.stringify(order)); }catch(e){ console.warn('localStorage save failed', e); }
+}
+function loadOrderLocal(){
+  try{
+    const raw = localStorage.getItem(PENDING_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+function clearOrderLocal(){
+  try{ localStorage.removeItem(PENDING_KEY); }catch(e){}
+}
+
+async function withRetry(fn, { attempts=4, baseDelay=1000, onAttempt=null } = {}){
+  let lastErr;
+  for(let i=0;i<attempts;i++){
+    try{
+      if(onAttempt) onAttempt(i+1, attempts);
+      return await fn();
+    }catch(err){
+      lastErr = err;
+      console.warn(`Attempt ${i+1}/${attempts} failed:`, err);
+      if(i < attempts-1){
+        const delay = baseDelay * Math.pow(2, i) + Math.random()*300;
+        await new Promise(r=>setTimeout(r, delay));
+      }
+    }
+  }
+  throw lastErr;
+}
+
+function setLoadingText(msg){
+  const el = document.getElementById('pay-loading-text');
+  if(el) el.textContent = msg;
+}
+
+function ensureRazorpayLoaded(){
+  return new Promise((resolve, reject)=>{
+    if(window.Razorpay) return resolve();
+    const existing = document.querySelector('script[src*="checkout.razorpay.com"]');
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = ()=> window.Razorpay ? resolve() : reject(new Error('Razorpay failed to initialize'));
+    script.onerror = ()=> reject(new Error('Could not load payment gateway — check your connection'));
+    if(existing){
+      setTimeout(()=> window.Razorpay ? resolve() : document.head.appendChild(script), 800);
+    } else {
+      document.head.appendChild(script);
+    }
+  });
+}
+
+/* ---------- payment ---------- */
+async function handlePayment(){
+  const btn = document.getElementById('pay-btn');
+  if(btn.disabled) return;
+
+  if(currentPrice === 0){
+    const order = {
+      paymentId: 'free_' + crypto.randomUUID(),
+      recipient: state.recipient, sender: state.sender, message: state.message, question: state.question,
+      photos: state.photoFiles, price: currentPrice, coupon: appliedCoupon, ts: Date.now()
+    };
+    saveOrderLocal(order);
+    finalizeSurprise(order);
+    return;
+  }
+
+  btn.disabled = true;
+  document.getElementById('pay-fail').style.display = 'none';
+  try{
+    await ensureRazorpayLoaded();
+  }catch(err){
+    btn.disabled = false;
+    alert(err.message || "Couldn't load the payment gateway. Check your connection and try again.");
+    return;
+  }
+  btn.disabled = false;
+
+  const rzp = new Razorpay({
+    key: RAZORPAY_KEY,
+    amount: currentPrice * 100,
+    currency: 'INR',
+    name: "Will You?",
+    description: `Proposal for ${state.recipient}`,
+    handler: function(response){
+      const order = {
+        paymentId: response.razorpay_payment_id,
+        recipient: state.recipient, sender: state.sender, message: state.message, question: state.question,
+        photos: state.photoFiles, price: currentPrice, coupon: appliedCoupon, ts: Date.now()
+      };
+      saveOrderLocal(order);
+      finalizeSurprise(order);
+    },
+    modal: {
+      ondismiss: function(){ btn.disabled = false; }
+    },
+    theme: { color: '#b83b5e' }
+  });
+  rzp.on('payment.failed', function(resp){
+    btn.disabled = false;
+    alert("Payment didn't go through: " + (resp.error && resp.error.description ? resp.error.description : 'please try again.'));
+  });
+  rzp.open();
+}
+
+/* ---------- finalize: upload photos, save row, build link — resumable & retried ---------- */
+let finalizeInFlight = false;
+
+async function finalizeSurprise(order){
+  if(finalizeInFlight) return;
+  finalizeInFlight = true;
+
+  document.getElementById('pay-btn').disabled = true;
+  document.getElementById('pay-fail').style.display = 'none';
+  document.getElementById('pay-loading').style.display = 'flex';
+  setLoadingText('Checking your order…');
+
+  try{
+    const existing = await withRetry(
+      ()=> sb.from(TABLE).select('*').eq('payment_id', order.paymentId).limit(1),
+      { attempts: 2, baseDelay: 700 }
+    );
+    let row = existing.data && existing.data[0];
+
+    let urls;
+    if(row){
+      urls = [row.photo1, row.photo2, row.photo3];
+    } else {
+      urls = [];
+      for(let i=0;i<PHOTO_COUNT;i++){
+        if(!order.photos[i]){
+          urls.push('');
+          continue;
+        }
+        setLoadingText(`Uploading photo ${i+1} of ${PHOTO_COUNT}…`);
+        const blob = dataUrlToBlob(order.photos[i]);
+        const path = `${crypto.randomUUID()}.jpg`;
+        await withRetry(async ()=>{
+          const { error: upErr } = await sb.storage.from(BUCKET).upload(path, blob, { contentType: 'image/jpeg' });
+          if(upErr) throw upErr;
+        }, { attempts: 4, baseDelay: 1000, onAttempt: (n,total)=> n>1 && setLoadingText(`Uploading photo ${i+1} of ${PHOTO_COUNT} (retry ${n}/${total})…`) });
+        const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+        urls.push(pub.publicUrl);
+      }
+
+      setLoadingText('Saving your surprise…');
+      row = await withRetry(async ()=>{
+        const { data, error: dbErr } = await sb.from(TABLE).insert({
+          recipient: order.recipient,
+          sender: order.sender,
+          message: order.message,
+          question: order.question,
+          photo1: urls[0],
+          photo2: urls[1],
+          photo3: urls[2],
+          price: order.price,
+          coupon: order.coupon,
+          payment_id: order.paymentId,
+          paid: true
+        }).select().single();
+        if(dbErr) throw dbErr;
+        return data;
+      }, { attempts: 4, baseDelay: 1000, onAttempt: (n,total)=> n>1 && setLoadingText(`Saving your surprise (retry ${n}/${total})…`) });
+    }
+
+    const link = `${location.origin}${location.pathname}?id=${row.id}`;
+    document.getElementById('out-link').value = link;
+
+    state.message = order.message;
+    state.photos = urls;
+    populateBoard(state.photos);
+    populateExperience(order.recipient, order.sender, order.question, order.message, row.created_at);
+
+    clearOrderLocal();
+    document.getElementById('resume-banner').style.display = 'none';
+    goTo('step-linkout');
+  }catch(err){
+    console.error(err);
+    document.getElementById('pay-fail').style.display = 'block';
+  }finally{
+    finalizeInFlight = false;
+    document.getElementById('pay-btn').disabled = false;
+    document.getElementById('pay-loading').style.display = 'none';
+  }
+}
+
+function retryFinalize(){
+  const order = loadOrderLocal();
+  if(!order){
+    document.getElementById('pay-fail').style.display = 'none';
+    return;
+  }
+  finalizeSurprise(order);
+}
+
+function resumePendingOrder(){
+  const order = loadOrderLocal();
+  if(!order) return;
+  state.recipient = order.recipient; state.sender = order.sender; state.message = order.message; state.question = order.question;
+  goTo('step-payment');
+  currentPrice = order.price; appliedCoupon = order.coupon;
+  document.getElementById('pay-price').textContent = '₹' + currentPrice;
+  updatePayBtnLabel();
+  finalizeSurprise(order);
+}
+function discardPendingOrder(){
+  if(!confirm('Discard this paid order? This cannot be undone.')) return;
+  clearOrderLocal();
+  document.getElementById('resume-banner').style.display = 'none';
+}
+
+function copyLink(){
+  const inp = document.getElementById('out-link');
+  inp.select();
+  navigator.clipboard.writeText(inp.value).then(()=>{
+    const msg = document.getElementById('copy-msg');
+    msg.style.display = 'block';
+    setTimeout(()=> msg.style.display='none', 1800);
+  });
+}
+
+/* ---------- notification tap ---------- */
+function openNotification(){
+  goTo('step-envelope');
+}
+
+/* ---------- envelope ---------- */
+function openEnvelope(){
+  document.getElementById('env-flap').style.transform = 'scaleY(0)';
+  document.getElementById('env-hint').textContent = 'opening...';
+  setTimeout(()=> goTo('step-question'), 550);
+}
+
+/* ---------- the question (yes / no) ---------- */
+function resetQuestionUI(){
+  const btn = document.getElementById('no-btn');
+  btn.style.left = '';
+  btn.style.top = '';
+  qSarcasmIdx = 0;
+}
+
+function showQToast(){
+  const t = document.getElementById('q-toast');
+  t.textContent = SARCASMS[qSarcasmIdx % SARCASMS.length];
+  qSarcasmIdx++;
+  t.classList.add('show');
+  clearTimeout(qToastTimer);
+  qToastTimer = setTimeout(()=> t.classList.remove('show'), 2400);
+}
+
+function runNoBtn(){
+  const btn = document.getElementById('no-btn');
+  const card = document.getElementById('card');
+  const rect = card.getBoundingClientRect();
+  const pad = 14;
+  // fixed positioning is relative to the viewport, but the playable area is
+  // only the phone-sized card — bound the jump to the card's own rect, not
+  // the whole window, or on wide screens the button lands outside the card
+  // and it just looks like it vanished instead of running away
+  const minX = rect.left + pad;
+  const maxX = rect.right - btn.offsetWidth - pad;
+  const minY = rect.top + pad;
+  const maxY = rect.bottom - btn.offsetHeight - pad;
+
+  let x = minX + Math.random() * Math.max(0, maxX - minX);
+  let y = minY + Math.random() * Math.max(0, maxY - minY);
+
+  // keep it a minimum distance from wherever it currently is so a slow
+  // hover/tap doesn't just re-land it in roughly the same spot
+  const curLeft = parseFloat(btn.style.left) || rect.left + rect.width/2;
+  const curTop = parseFloat(btn.style.top) || rect.top + rect.height/2;
+  const minJump = 60;
+  if(Math.hypot(x - curLeft, y - curTop) < minJump){
+    x = x + (x < (rect.left + rect.right)/2 ? minJump : -minJump);
+    y = y + (y < (rect.top + rect.bottom)/2 ? minJump : -minJump);
+    x = Math.min(Math.max(x, minX), maxX);
+    y = Math.min(Math.max(y, minY), maxY);
+  }
+
+  btn.style.left = x + 'px';
+  btn.style.top = y + 'px';
+  showQToast();
+}
+
+(function wireQuestionButtons(){
+  const noBtn = document.getElementById('no-btn');
+  const yesBtn = document.getElementById('yes-btn');
+  let lastNoRun = 0;
+  function triggerNoBtn(e){
+    if(e) e.preventDefault();
+    // a touchstart followed by its synthetic click can double-fire on some
+    // mobile browsers — debounce so it doesn't jump twice per tap
+    const now = Date.now();
+    if(now - lastNoRun < 250) return;
+    lastNoRun = now;
+    runNoBtn();
+  }
+  noBtn.addEventListener('mouseenter', triggerNoBtn);
+  noBtn.addEventListener('touchstart', triggerNoBtn, { passive:false });
+  noBtn.addEventListener('click', triggerNoBtn);
+  yesBtn.addEventListener('click', ()=>{
+    goTo('step-celebration');
+    buildQConfetti();
+  });
+})();
+
+function buildQConfetti(){
+  const layer = document.getElementById('confetti-layer');
+  layer.innerHTML = '';
+  const emojis = ['❤️','💖','🌸','✨','💕','🌟'];
+  for(let i=0;i<14;i++){
+    const c = document.createElement('div');
+    c.className = 'cele-heart';
+    c.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+    c.style.left = Math.random()*100 + '%';
+    c.style.fontSize = (Math.random()*12+16) + 'px';
+    c.style.animationDuration = (Math.random()*2+3) + 's';
+    c.style.animationDelay = (Math.random()*1.2) + 's';
+    layer.appendChild(c);
+  }
+}
+
+/* ---------- certificate ---------- */
+function downloadCertificate(){
+  try{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:'landscape', unit:'pt', format:[600,420] });
+
+    doc.setDrawColor(184,59,94);
+    doc.setLineWidth(3);
+    doc.rect(15,15,570,390);
+    doc.setLineWidth(1);
+    doc.rect(24,24,552,372);
+
+    doc.setFont('times','italic');
+    doc.setFontSize(12);
+    doc.setTextColor(184,113,138);
+    doc.text('CERTIFICATE OF FOREVER', 300, 68, { align:'center' });
+
+    doc.setFont('times','bolditalic');
+    doc.setFontSize(20);
+    doc.setTextColor(58,15,26);
+    doc.text('This is to certify that', 300, 112, { align:'center' });
+
+    doc.setFontSize(28);
+    doc.setTextColor(184,59,94);
+    doc.text(state.recipient || 'Someone Special', 300, 150, { align:'center' });
+
+    doc.setFont('times','italic');
+    doc.setFontSize(13);
+    doc.setTextColor(74,37,48);
+    doc.text(`said YES to ${state.sender || 'someone'}'s question:`, 300, 182, { align:'center' });
+
+    doc.setFont('times','bolditalic');
+    doc.setFontSize(16);
+    doc.text(`"${state.question || 'Will you be mine?'}"`, 300, 218, { align:'center', maxWidth:480 });
+
+    doc.setFont('times','italic');
+    doc.setFontSize(12);
+    doc.setTextColor(138,74,92);
+    doc.text('and their story continues, officially, forever.', 300, 258, { align:'center' });
+
+    doc.setFontSize(11);
+    doc.text(document.getElementById('cert-date').textContent, 300, 330, { align:'center' });
+
+    doc.setFont('times','italic');
+    doc.setFontSize(13);
+    doc.setTextColor(74,37,48);
+    doc.text(`— ${state.sender || ''}`, 500, 378, { align:'right' });
+
+    doc.save(`certificate-${(state.recipient||'you').replace(/\s+/g,'_')}.pdf`);
+  }catch(err){
+    console.error(err);
+    alert("Couldn't generate the certificate — check your connection and try again.");
+  }
+}
+
+/* ---------- vision board: fills the 3 "focus" slots with the user's uploads.
+   The 2 secondary photos (photo.jpeg, photo1.jpeg) are static assets you deploy alongside this file. ---------- */
+function populateBoard(photos){
+  for(let i=0;i<PHOTO_COUNT;i++){
+    const img = document.getElementById(`board-photo-${i}`);
+    if(img) img.src = photos[i] || 'photo1.jpeg';
+  }
+}
+
+/* ---------- letter typewriter ---------- */
+let letterTypeTimer = null;
+function typewriterLetter(text){
+  const textEl = document.getElementById('letter-body-text');
+  const cursorEl = document.getElementById('letter-cursor');
+  const bodyEl = document.getElementById('letter-body');
+  if(!textEl) return;
+  if(letterTypeTimer){ clearInterval(letterTypeTimer); letterTypeTimer = null; }
+  textEl.textContent = '';
+  cursorEl.style.display = 'inline-block';
+  const chars = Array.from(text || '');
+  let i = 0;
+  letterTypeTimer = setInterval(()=>{
+    textEl.textContent += chars[i] || '';
+    i++;
+    bodyEl.scrollTop = bodyEl.scrollHeight;
+    if(i >= chars.length){
+      clearInterval(letterTypeTimer);
+      letterTypeTimer = null;
+      cursorEl.style.display = 'none';
+    }
+  }, 24);
+}
+
+/* ---------- clock (decorative, real local time) ---------- */
+(function tickClock(){
+  const el = document.getElementById('notif-clock');
+  function upd(){
+    const d = new Date();
+    let h = d.getHours()%12; if(h===0) h=12;
+    const m = String(d.getMinutes()).padStart(2,'0');
+    if(el) el.textContent = `${h}:${m}`;
+  }
+  upd(); setInterval(upd, 15000);
+})();
+
+/* ---------- nav ---------- */
+const ALL_STEPS = ['step-intake','step-payment','step-linkout','step-notifications','step-envelope','step-question','step-celebration','step-letter','step-certificate','step-gallery','step-bootload'];
+
+function goTo(id){
+  ALL_STEPS.forEach(s=>{ document.getElementById(s).style.display = 'none'; });
+  const el = document.getElementById(id);
+  el.style.display = 'flex';
+  el.classList.remove('fade-up'); void el.offsetWidth; el.classList.add('fade-up');
+  if(id === 'step-letter') typewriterLetter(state.message);
+}
+function restartFlow(){
+  document.getElementById('env-flap').style.transform = 'scaleY(1)';
+  document.getElementById('env-hint').textContent = 'tap to open';
+  resetQuestionUI();
+  goTo('step-intake');
+}
+function goBackTo(id){
+  // stepping back through the envelope must reset it, otherwise it looks
+  // already-opened next time it's shown
+  document.getElementById('env-flap').style.transform = 'scaleY(1)';
+  document.getElementById('env-hint').textContent = 'tap to open';
+  goTo(id);
+}
+
+/* ---------- viewer mode: ?id=<row uuid> ---------- */
+function renderViewer(row){
+  isViewerMode = true;
+  state.recipient = row.recipient;
+  state.sender = row.sender;
+  state.message = row.message;
+  state.question = row.question;
+  state.photos = [row.photo1, row.photo2, row.photo3];
+
+  populateExperience(row.recipient, row.sender, row.question, row.message, row.created_at);
+  populateBoard(state.photos);
+  resetQuestionUI();
+
+  document.getElementById('gallery-actions').innerHTML = '<button class="btn-ghost" onclick="goTo(\'step-certificate\')">← Back</button>';
+  document.getElementById('gallery-restart').style.display = 'none';
+  document.getElementById('notif-edit-btn').style.display = 'none';
+  document.getElementById('env-edit-btn').style.display = 'none';
+  goTo('step-notifications');
+}
+
+(async function initViewer(){
+  const params = new URLSearchParams(location.search);
+  const id = params.get('id');
+
+  function bootError(msg){
+    document.getElementById('bootload-spinner').style.display = 'none';
+    document.getElementById('bootload-text').textContent = msg;
+    document.getElementById('bootload-retry').style.display = 'inline-block';
+  }
+
+  if(id){
+    try{
+      const { data, error } = await withRetry(
+        ()=> sb.from(TABLE).select('*').eq('id', id).eq('paid', true).single(),
+        { attempts: 3, baseDelay: 800 }
+      );
+      if(error || !data) throw error || new Error('not found');
+      document.documentElement.classList.remove('viewer-boot');
+      renderViewer(data);
+    }catch(err){
+      console.error('Could not load surprise', err);
+      bootError("Hmm, this link isn't loading. Check your connection and try again.");
+    }
+    return;
+  }
+
+  // creator flow — surface any unfinished paid order so it's never silently lost
+  if(loadOrderLocal()) document.getElementById('resume-banner').style.display = 'block';
+})();
+</script>
+</body>
+</html>
